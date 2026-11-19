@@ -1,0 +1,64 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.turbo/
+apps/web/dist/
+
+# Anchor / Solana
+target/
+.anchor/
+test-ledger/
+deployments/
+**/*.so
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+*.pem
+id.json
+**/keypair*.json
+**/wallet*.json
+!**/wallet*.example.json
+
+# Vendor clones (large; recorded by commit SHA in docs)
+vendor/
+# Large local clones only
+refrence/
+reference/
+
+# IDE / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+
+# Logs / coverage
+logs/
+*.log
+npm-debug.log*
+coverage/
+playwright-report/
+test-results/
+blob-report/
+
+# Misc
+*.tsbuildinfo
+.cache/
+.npm/
+tmp/
+temp/
+tmp-*.log
+tmp-*.json
+scripts/npm-dns-proxy.mjs.local
+
+# Local validator scratch
+.validator/

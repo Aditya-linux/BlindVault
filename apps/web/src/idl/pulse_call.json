@@ -1,0 +1,920 @@
+{
+  "address": "BZ6PBwRABDTDsifdLoBKGbzXbxX5bGxStGyvbzneM9H1",
+  "metadata": {
+    "name": "pulse_call",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Pulse Call — binary price calls on MagicBlock ER (Devnet)"
+  },
+  "instructions": [
+    {
+      "name": "consume_pulse",
+      "discriminator": [
+        121,
+        18,
+        18,
+        54,
+        197,
+        18,
+        161,
+        131
+      ],
+      "accounts": [
+        {
+          "name": "vrf_program_identity",
+          "docs": [
+            "Scoped VRF identity PDA, bound to this program. Its presence as a signer proves",
+            "the callback was issued by the VRF program for this program."
+          ],
+          "signer": true
+        },
+        {
+          "name": "call",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "randomness",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "_client_seed",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "create_call",
+      "docs": [
+        "Create reusable per-player Call PDA on base layer before ER delegate."
+      ],
+      "discriminator": [
+        83,
+        152,
+        245,
+        217,
+        91,
+        24,
+        250,
+        65
+      ],
+      "accounts": [
+        {
+          "name": "player",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "call",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  117,
+                  108,
+                  115,
+                  101,
+                  95,
+                  99,
+                  97,
+                  108,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "player"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "delegate",
+      "docs": [
+        "Delegate Call PDA into the Ephemeral Rollup for low-latency place/settle."
+      ],
+      "discriminator": [
+        90,
+        147,
+        75,
+        178,
+        85,
+        88,
+        4,
+        137
+      ],
+      "accounts": [
+        {
+          "name": "player",
+          "signer": true
+        },
+        {
+          "name": "buffer_call",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  102,
+                  102,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "call"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                156,
+                205,
+                138,
+                142,
+                114,
+                85,
+                105,
+                62,
+                190,
+                9,
+                10,
+                252,
+                96,
+                38,
+                152,
+                62,
+                233,
+                39,
+                195,
+                229,
+                61,
+                164,
+                72,
+                175,
+                52,
+                9,
+                96,
+                181,
+                85,
+                48,
+                218,
+                144
+              ]
+            }
+          }
+        },
+        {
+          "name": "delegation_record_call",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  108,
+                  101,
+                  103,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "call"
+              }
+            ],
+            "program": {
+              "kind": "account",
+              "path": "delegation_program"
+            }
+          }
+        },
+        {
+          "name": "delegation_metadata_call",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  108,
+                  101,
+                  103,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110,
+                  45,
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "call"
+              }
+            ],
+            "program": {
+              "kind": "account",
+              "path": "delegation_program"
+            }
+          }
+        },
+        {
+          "name": "call",
+          "writable": true
+        },
+        {
+          "name": "owner_program",
+          "address": "BZ6PBwRABDTDsifdLoBKGbzXbxX5bGxStGyvbzneM9H1"
+        },
+        {
+          "name": "delegation_program",
+          "address": "DELeGGvXpWV2fqJUhqcF5ZSYMS4JTLjteaAMARRSaeSh"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize_pool",
+      "discriminator": [
+        95,
+        180,
+        10,
+        172,
+        84,
+        174,
+        232,
+        40
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  117,
+                  108,
+                  115,
+                  101,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "price_feed",
+          "type": "pubkey"
+        },
+        {
+          "name": "payout_bps",
+          "type": "u64"
+        },
+        {
+          "name": "min_duration_secs",
+          "type": "i64"
+        },
+        {
+          "name": "max_duration_secs",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "place_call",
+      "docs": [
+        "Open a directional call against the live ER oracle price."
+      ],
+      "discriminator": [
+        11,
+        8,
+        17,
+        8,
+        195,
+        166,
+        211,
+        69
+      ],
+      "accounts": [
+        {
+          "name": "player",
+          "signer": true
+        },
+        {
+          "name": "pool",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  117,
+                  108,
+                  115,
+                  101,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "call",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  117,
+                  108,
+                  115,
+                  101,
+                  95,
+                  99,
+                  97,
+                  108,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "player"
+              }
+            ]
+          }
+        },
+        {
+          "name": "price_feed"
+        }
+      ],
+      "args": [
+        {
+          "name": "direction",
+          "type": "u8"
+        },
+        {
+          "name": "duration_secs",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "process_undelegation",
+      "discriminator": [
+        196,
+        28,
+        41,
+        206,
+        48,
+        37,
+        51,
+        167
+      ],
+      "accounts": [
+        {
+          "name": "base_account",
+          "writable": true
+        },
+        {
+          "name": "buffer",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  110,
+                  100,
+                  101,
+                  108,
+                  101,
+                  103,
+                  97,
+                  116,
+                  101,
+                  45,
+                  98,
+                  117,
+                  102,
+                  102,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "base_account"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                181,
+                183,
+                0,
+                225,
+                242,
+                87,
+                58,
+                192,
+                204,
+                6,
+                34,
+                1,
+                52,
+                74,
+                207,
+                151,
+                184,
+                53,
+                6,
+                235,
+                140,
+                229,
+                25,
+                152,
+                204,
+                98,
+                126,
+                24,
+                147,
+                128,
+                167,
+                62
+              ]
+            }
+          }
+        },
+        {
+          "name": "payer",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "account_seeds",
+          "type": {
+            "vec": "bytes"
+          }
+        }
+      ]
+    },
+    {
+      "name": "request_pulse",
+      "docs": [
+        "Request MagicBlock VRF to trim the payout pulse (entertainment fairness)."
+      ],
+      "discriminator": [
+        77,
+        159,
+        171,
+        21,
+        117,
+        85,
+        43,
+        205
+      ],
+      "accounts": [
+        {
+          "name": "player",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "call",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  117,
+                  108,
+                  115,
+                  101,
+                  95,
+                  99,
+                  97,
+                  108,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "player"
+              }
+            ]
+          }
+        },
+        {
+          "name": "oracle_queue",
+          "writable": true
+        },
+        {
+          "name": "program_identity",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  100,
+                  101,
+                  110,
+                  116,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vrf_program",
+          "address": "Vrf1RNUjXmQGjmQrQLvJHs9SNkvDJEsRVFPkfSQUwGz"
+        },
+        {
+          "name": "slot_hashes",
+          "address": "SysvarS1otHashes111111111111111111111111111"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "client_seed",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "reset_call",
+      "docs": [
+        "Reset settled call so the same PDA can be reused."
+      ],
+      "discriminator": [
+        136,
+        231,
+        8,
+        73,
+        175,
+        68,
+        112,
+        189
+      ],
+      "accounts": [
+        {
+          "name": "player",
+          "signer": true
+        },
+        {
+          "name": "call",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  117,
+                  108,
+                  115,
+                  101,
+                  95,
+                  99,
+                  97,
+                  108,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "player"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "settle_call",
+      "docs": [
+        "Settle against the current oracle price after expiry."
+      ],
+      "discriminator": [
+        58,
+        230,
+        6,
+        58,
+        104,
+        245,
+        154,
+        227
+      ],
+      "accounts": [
+        {
+          "name": "player",
+          "signer": true
+        },
+        {
+          "name": "call",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  117,
+                  108,
+                  115,
+                  101,
+                  95,
+                  99,
+                  97,
+                  108,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "player"
+              }
+            ]
+          }
+        },
+        {
+          "name": "price_feed"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "undelegate_call",
+      "discriminator": [
+        130,
+        98,
+        32,
+        227,
+        53,
+        18,
+        117,
+        169
+      ],
+      "accounts": [
+        {
+          "name": "player",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "call",
+          "writable": true
+        },
+        {
+          "name": "magic_program",
+          "address": "Magic11111111111111111111111111111111111111"
+        },
+        {
+          "name": "magic_context",
+          "writable": true,
+          "address": "MagicContext1111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Call",
+      "discriminator": [
+        62,
+        231,
+        169,
+        58,
+        154,
+        150,
+        83,
+        196
+      ]
+    },
+    {
+      "name": "Pool",
+      "discriminator": [
+        241,
+        154,
+        109,
+        4,
+        17,
+        177,
+        109,
+        188
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "Unauthorized signer"
+    },
+    {
+      "code": 6001,
+      "name": "CallNotIdle",
+      "msg": "Call is not idle"
+    },
+    {
+      "code": 6002,
+      "name": "CallNotOpen",
+      "msg": "Call is not open"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidDuration",
+      "msg": "Duration must be positive"
+    },
+    {
+      "code": 6004,
+      "name": "InvalidDirection",
+      "msg": "Invalid direction"
+    },
+    {
+      "code": 6005,
+      "name": "TooEarly",
+      "msg": "Settle time has not arrived"
+    },
+    {
+      "code": 6006,
+      "name": "BadOracle",
+      "msg": "Oracle account data too short"
+    }
+  ],
+  "types": [
+    {
+      "name": "Call",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "u8"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "status",
+            "type": "u8"
+          },
+          {
+            "name": "direction",
+            "type": "u8"
+          },
+          {
+            "name": "open_price",
+            "type": "i64"
+          },
+          {
+            "name": "settle_price",
+            "type": "i64"
+          },
+          {
+            "name": "open_slot",
+            "type": "u64"
+          },
+          {
+            "name": "expiry_unix",
+            "type": "i64"
+          },
+          {
+            "name": "payout_bps",
+            "type": "u64"
+          },
+          {
+            "name": "pulse_seed",
+            "type": "u32"
+          },
+          {
+            "name": "won",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Pool",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "schema_version",
+            "type": "u8"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "price_feed",
+            "type": "pubkey"
+          },
+          {
+            "name": "payout_bps",
+            "type": "u64"
+          },
+          {
+            "name": "min_duration_secs",
+            "type": "i64"
+          },
+          {
+            "name": "max_duration_secs",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ]
+}

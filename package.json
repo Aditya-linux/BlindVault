@@ -1,0 +1,23 @@
+{
+  "name": "pulse-call",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Pulse Call — Entertainment Finance price calls on Solana + MagicBlock (Devnet)",
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @pulse-call/web",
+    "build": "npm run build -w @pulse-call/web",
+    "typecheck": "npm run typecheck -w @pulse-call/web",
+    "lint": "npm run lint -w @pulse-call/web",
+    "test": "npm run test -w @pulse-call/web",
+    "test:e2e": "npm run test:e2e -w @pulse-call/web",
+    "anchor:build": "anchor build",
+    "anchor:test": "anchor test",
+    "smoke:localnet": "node scripts/localnet-smoke.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
