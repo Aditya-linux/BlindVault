@@ -20,7 +20,10 @@ deployments/
 .env
 .env.local
 .env.*.local
+app/.env.local
 *.pem
+.deploy*.log
+
 id.json
 **/keypair*.json
 **/wallet*.json
@@ -44,6 +47,7 @@ Thumbs.db
 # Logs / coverage
 logs/
 *.log
+.*.log
 npm-debug.log*
 coverage/
 playwright-report/
@@ -62,3 +66,15 @@ scripts/npm-dns-proxy.mjs.local
 
 # Local validator scratch
 .validator/
+
+# Large / local-only artifacts (keep out of BlindVault remote)
+*.mp4
+*.webm
+.agents/
+.kombai/
+.cursor/
+agent-transcripts/
+addresoruces.md
+dc30bd314e8170fb54dce7b4511168186f9577de.mp4
+app/.next/
+**/next/cache/

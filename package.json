@@ -1,23 +1,46 @@
 {
-  "name": "pulse-call",
+  "name": "blind-vault",
   "private": true,
   "version": "0.1.0",
-  "description": "Pulse Call — Entertainment Finance price calls on Solana + MagicBlock (Devnet)",
+  "description": "Blind Vault — Storage Wars on Solana with MagicBlock PER + VRF (Devnet)",
   "workspaces": [
-    "apps/web"
+    "app"
   ],
   "scripts": {
-    "dev": "npm run dev -w @pulse-call/web",
-    "build": "npm run build -w @pulse-call/web",
-    "typecheck": "npm run typecheck -w @pulse-call/web",
-    "lint": "npm run lint -w @pulse-call/web",
-    "test": "npm run test -w @pulse-call/web",
-    "test:e2e": "npm run test:e2e -w @pulse-call/web",
+    "dev": "npm run dev -w @blind-vault/app",
+    "build": "npm run build -w @blind-vault/app",
+    "typecheck": "npm run typecheck -w @blind-vault/app",
+    "lint": "npm run lint -w @blind-vault/app",
+    "test": "cargo test -p blind_vault",
     "anchor:build": "anchor build",
     "anchor:test": "anchor test",
-    "smoke:localnet": "node scripts/localnet-smoke.mjs"
+    "init:house": "tsx scripts/01-init-house.ts",
+    "seed:items": "tsx scripts/02-seed-items.ts",
+    "init:pool": "tsx scripts/03-init-pool.ts",
+    "open-vault": "tsx scripts/open-vault.ts",
+    "keeper": "tsx scripts/keeper.ts",
+    "snoop": "tsx scripts/snoop.ts"
+  },
+  "devDependencies": {
+    "@coral-xyz/anchor": "0.32.1",
+    "@magicblock-labs/ephemeral-rollups-sdk": "0.17.3",
+    "@solana/web3.js": "^1.98.4",
+    "@types/node": "^22.13.10",
+    "bs58": "^6.0.0",
+    "tsx": "^4.20.5",
+    "tweetnacl": "^1.0.3",
+    "typescript": "^5.8.2"
   },
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "@solana/wallet-adapter-base": "^0.9.27",
+    "@solana/wallet-adapter-phantom": "^0.9.28",
+    "@solana/wallet-adapter-react": "^0.15.39",
+    "@solana/wallet-adapter-react-ui": "^0.9.39",
+    "@solana/wallet-adapter-solflare": "^0.6.32",
+    "lightningcss": "^1.30.1",
+    "lightningcss-win32-x64-msvc": "^1.30.1"
   }
 }

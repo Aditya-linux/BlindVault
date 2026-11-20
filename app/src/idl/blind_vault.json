@@ -1,0 +1,3724 @@
+{
+  "address": "E9UmQYi4gTHyyQ3SK5B4UCpewBnUBFrEc5NqkkAjr42h",
+  "metadata": {
+    "name": "blind_vault",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Blind Vault — Storage Wars on Solana with MagicBlock PER + VRF"
+  },
+  "instructions": [
+    {
+      "name": "add_item",
+      "discriminator": [
+        225,
+        38,
+        79,
+        147,
+        116,
+        142,
+        147,
+        57
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "house",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  117,
+                  115,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "item",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  116,
+                  101,
+                  109
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "index"
+              }
+            ]
+          }
+        },
+        {
+          "name": "item_mint",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "pool_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "house"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "item_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "index",
+          "type": "u16"
+        },
+        {
+          "name": "rarity",
+          "type": "u8"
+        },
+        {
+          "name": "category",
+          "type": "u8"
+        },
+        {
+          "name": "value",
+          "type": "u32"
+        },
+        {
+          "name": "name",
+          "type": {
+            "array": [
+              "u8",
+              24
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "buy_peek",
+      "discriminator": [
+        155,
+        107,
+        95,
+        156,
+        27,
+        236,
+        203,
+        216
+      ],
+      "accounts": [
+        {
+          "name": "buyer",
+          "signer": true
+        },
+        {
+          "name": "lot",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lot.house",
+                "account": "Vault"
+              },
+              {
+                "kind": "account",
+                "path": "lot.id",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "contents"
+        },
+        {
+          "name": "pool_ledger"
+        },
+        {
+          "name": "peek",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  101,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lot"
+              },
+              {
+                "kind": "account",
+                "path": "buyer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "peek_permission",
+          "writable": true
+        },
+        {
+          "name": "ephemeral_vault",
+          "writable": true,
+          "address": "MagicVau1t999999999999999999999999999999999"
+        },
+        {
+          "name": "magic_program",
+          "address": "Magic11111111111111111111111111111111111111"
+        },
+        {
+          "name": "permission_program",
+          "address": "ACLseoPoyC3cBqoUtkbjZ4aDrkurZW86v19pXz2XQnp1"
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "address": "MagicVau1t999999999999999999999999999999999"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "close_peek",
+      "discriminator": [
+        86,
+        169,
+        11,
+        71,
+        128,
+        152,
+        71,
+        144
+      ],
+      "accounts": [
+        {
+          "name": "buyer",
+          "docs": [
+            "Buyer signs CloseEphemeralPermission (ACL member)."
+          ],
+          "signer": true
+        },
+        {
+          "name": "lot",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lot.house",
+                "account": "Vault"
+              },
+              {
+                "kind": "account",
+                "path": "lot.id",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "peek",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  101,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lot"
+              },
+              {
+                "kind": "account",
+                "path": "buyer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "peek_permission",
+          "writable": true
+        },
+        {
+          "name": "permission_program",
+          "address": "ACLseoPoyC3cBqoUtkbjZ4aDrkurZW86v19pXz2XQnp1"
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "address": "MagicVau1t999999999999999999999999999999999"
+        },
+        {
+          "name": "magic_program",
+          "address": "Magic11111111111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "close_round",
+      "discriminator": [
+        149,
+        14,
+        81,
+        88,
+        230,
+        226,
+        234,
+        37
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "signer": true
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "hints",
+          "writable": true
+        },
+        {
+          "name": "contents",
+          "writable": true
+        },
+        {
+          "name": "pool_ledger",
+          "writable": true
+        },
+        {
+          "name": "contents_permission",
+          "writable": true
+        },
+        {
+          "name": "pool_permission",
+          "writable": true
+        },
+        {
+          "name": "ephemeral_vault",
+          "writable": true,
+          "address": "MagicVau1t999999999999999999999999999999999"
+        },
+        {
+          "name": "permission_program",
+          "address": "ACLseoPoyC3cBqoUtkbjZ4aDrkurZW86v19pXz2XQnp1"
+        },
+        {
+          "name": "magic_program",
+          "address": "Magic11111111111111111111111111111111111111"
+        },
+        {
+          "name": "magic_context",
+          "writable": true,
+          "address": "MagicContext1111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_vault",
+      "discriminator": [
+        29,
+        237,
+        247,
+        208,
+        193,
+        82,
+        54,
+        135
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "house",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  117,
+                  115,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "house"
+              },
+              {
+                "kind": "account",
+                "path": "house.next_vault_id",
+                "account": "House"
+              }
+            ]
+          }
+        },
+        {
+          "name": "hints",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  105,
+                  110,
+                  116,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "contents",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  116,
+                  101,
+                  110,
+                  116,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "scrip_mint"
+        },
+        {
+          "name": "escrow",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "scrip_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        }
+      ],
+      "args": [
+        {
+          "name": "size",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "delegate_contents",
+      "discriminator": [
+        188,
+        163,
+        77,
+        50,
+        138,
+        177,
+        8,
+        148
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "house",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  117,
+                  115,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault"
+        },
+        {
+          "name": "buffer_contents",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  102,
+                  102,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "contents"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                195,
+                83,
+                248,
+                160,
+                180,
+                31,
+                131,
+                62,
+                237,
+                179,
+                246,
+                36,
+                203,
+                203,
+                255,
+                13,
+                54,
+                223,
+                253,
+                212,
+                162,
+                120,
+                204,
+                143,
+                240,
+                71,
+                241,
+                40,
+                144,
+                106,
+                138,
+                246
+              ]
+            }
+          }
+        },
+        {
+          "name": "delegation_record_contents",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  108,
+                  101,
+                  103,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "contents"
+              }
+            ],
+            "program": {
+              "kind": "account",
+              "path": "delegation_program"
+            }
+          }
+        },
+        {
+          "name": "delegation_metadata_contents",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  108,
+                  101,
+                  103,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110,
+                  45,
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "contents"
+              }
+            ],
+            "program": {
+              "kind": "account",
+              "path": "delegation_program"
+            }
+          }
+        },
+        {
+          "name": "contents",
+          "writable": true
+        },
+        {
+          "name": "owner_program",
+          "address": "E9UmQYi4gTHyyQ3SK5B4UCpewBnUBFrEc5NqkkAjr42h"
+        },
+        {
+          "name": "delegation_program",
+          "address": "DELeGGvXpWV2fqJUhqcF5ZSYMS4JTLjteaAMARRSaeSh"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "delegate_hints",
+      "discriminator": [
+        45,
+        127,
+        96,
+        194,
+        163,
+        84,
+        233,
+        57
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "house",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  117,
+                  115,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault"
+        },
+        {
+          "name": "buffer_hints",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  102,
+                  102,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "hints"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                195,
+                83,
+                248,
+                160,
+                180,
+                31,
+                131,
+                62,
+                237,
+                179,
+                246,
+                36,
+                203,
+                203,
+                255,
+                13,
+                54,
+                223,
+                253,
+                212,
+                162,
+                120,
+                204,
+                143,
+                240,
+                71,
+                241,
+                40,
+                144,
+                106,
+                138,
+                246
+              ]
+            }
+          }
+        },
+        {
+          "name": "delegation_record_hints",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  108,
+                  101,
+                  103,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "hints"
+              }
+            ],
+            "program": {
+              "kind": "account",
+              "path": "delegation_program"
+            }
+          }
+        },
+        {
+          "name": "delegation_metadata_hints",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  108,
+                  101,
+                  103,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110,
+                  45,
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "hints"
+              }
+            ],
+            "program": {
+              "kind": "account",
+              "path": "delegation_program"
+            }
+          }
+        },
+        {
+          "name": "hints",
+          "writable": true
+        },
+        {
+          "name": "owner_program",
+          "address": "E9UmQYi4gTHyyQ3SK5B4UCpewBnUBFrEc5NqkkAjr42h"
+        },
+        {
+          "name": "delegation_program",
+          "address": "DELeGGvXpWV2fqJUhqcF5ZSYMS4JTLjteaAMARRSaeSh"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "delegate_pool_ledger",
+      "discriminator": [
+        94,
+        27,
+        73,
+        162,
+        19,
+        243,
+        145,
+        189
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "house",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  117,
+                  115,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault"
+        },
+        {
+          "name": "buffer_pool_ledger",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  102,
+                  102,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool_ledger"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                195,
+                83,
+                248,
+                160,
+                180,
+                31,
+                131,
+                62,
+                237,
+                179,
+                246,
+                36,
+                203,
+                203,
+                255,
+                13,
+                54,
+                223,
+                253,
+                212,
+                162,
+                120,
+                204,
+                143,
+                240,
+                71,
+                241,
+                40,
+                144,
+                106,
+                138,
+                246
+              ]
+            }
+          }
+        },
+        {
+          "name": "delegation_record_pool_ledger",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  108,
+                  101,
+                  103,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool_ledger"
+              }
+            ],
+            "program": {
+              "kind": "account",
+              "path": "delegation_program"
+            }
+          }
+        },
+        {
+          "name": "delegation_metadata_pool_ledger",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  108,
+                  101,
+                  103,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110,
+                  45,
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool_ledger"
+              }
+            ],
+            "program": {
+              "kind": "account",
+              "path": "delegation_program"
+            }
+          }
+        },
+        {
+          "name": "pool_ledger",
+          "writable": true
+        },
+        {
+          "name": "owner_program",
+          "address": "E9UmQYi4gTHyyQ3SK5B4UCpewBnUBFrEc5NqkkAjr42h"
+        },
+        {
+          "name": "delegation_program",
+          "address": "DELeGGvXpWV2fqJUhqcF5ZSYMS4JTLjteaAMARRSaeSh"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "delegate_vault",
+      "docs": [
+        "Delegate Vault PDA. Client also delegates hints/contents/pool via sibling ixs."
+      ],
+      "discriminator": [
+        166,
+        89,
+        17,
+        247,
+        90,
+        45,
+        115,
+        224
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "house",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  117,
+                  115,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "buffer_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  102,
+                  102,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                195,
+                83,
+                248,
+                160,
+                180,
+                31,
+                131,
+                62,
+                237,
+                179,
+                246,
+                36,
+                203,
+                203,
+                255,
+                13,
+                54,
+                223,
+                253,
+                212,
+                162,
+                120,
+                204,
+                143,
+                240,
+                71,
+                241,
+                40,
+                144,
+                106,
+                138,
+                246
+              ]
+            }
+          }
+        },
+        {
+          "name": "delegation_record_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  108,
+                  101,
+                  103,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ],
+            "program": {
+              "kind": "account",
+              "path": "delegation_program"
+            }
+          }
+        },
+        {
+          "name": "delegation_metadata_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  108,
+                  101,
+                  103,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110,
+                  45,
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              }
+            ],
+            "program": {
+              "kind": "account",
+              "path": "delegation_program"
+            }
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "owner_program",
+          "address": "E9UmQYi4gTHyyQ3SK5B4UCpewBnUBFrEc5NqkkAjr42h"
+        },
+        {
+          "name": "delegation_program",
+          "address": "DELeGGvXpWV2fqJUhqcF5ZSYMS4JTLjteaAMARRSaeSh"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "end_auction",
+      "discriminator": [
+        252,
+        110,
+        101,
+        234,
+        66,
+        104,
+        28,
+        87
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "faucet",
+      "discriminator": [
+        0,
+        98,
+        59,
+        30,
+        144,
+        142,
+        113,
+        12
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "house",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  117,
+                  115,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "scrip_mint",
+          "writable": true
+        },
+        {
+          "name": "user_scrip_ata",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "user"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "scrip_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "faucet_ticket",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  102,
+                  97,
+                  117,
+                  99,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "fill_vault",
+      "docs": [
+        "Fill vault using TEE-local entropy mix (Day-1 VRF spike fallback §7.5 / R1).",
+        "Production path swaps in ER VRF callback once verified on devnet-tee."
+      ],
+      "discriminator": [
+        207,
+        10,
+        24,
+        50,
+        84,
+        6,
+        98,
+        67
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "hints",
+          "writable": true
+        },
+        {
+          "name": "contents",
+          "writable": true
+        },
+        {
+          "name": "pool_ledger",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "client_seed",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "finalize",
+      "discriminator": [
+        171,
+        61,
+        218,
+        56,
+        127,
+        115,
+        12,
+        217
+      ],
+      "accounts": [
+        {
+          "name": "house",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  117,
+                  115,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "contents"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "finalize_abandoned",
+      "discriminator": [
+        110,
+        168,
+        87,
+        95,
+        187,
+        216,
+        188,
+        42
+      ],
+      "accounts": [
+        {
+          "name": "house",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  117,
+                  115,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "init_bid_permission",
+      "discriminator": [
+        36,
+        217,
+        208,
+        192,
+        111,
+        156,
+        135,
+        147
+      ],
+      "accounts": [
+        {
+          "name": "bidder",
+          "signer": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.house",
+                "account": "Vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.id",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bid",
+          "writable": true
+        },
+        {
+          "name": "bid_permission",
+          "writable": true
+        },
+        {
+          "name": "ephemeral_vault",
+          "writable": true,
+          "address": "MagicVau1t999999999999999999999999999999999"
+        },
+        {
+          "name": "magic_program",
+          "address": "Magic11111111111111111111111111111111111111"
+        },
+        {
+          "name": "permission_program",
+          "address": "ACLseoPoyC3cBqoUtkbjZ4aDrkurZW86v19pXz2XQnp1"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "init_contents_permission",
+      "docs": [
+        "Create contents permission only (isolates pool ghost failures)."
+      ],
+      "discriminator": [
+        173,
+        33,
+        68,
+        164,
+        11,
+        75,
+        120,
+        253
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "contents",
+          "writable": true
+        },
+        {
+          "name": "contents_permission",
+          "writable": true
+        },
+        {
+          "name": "ephemeral_vault",
+          "writable": true,
+          "address": "MagicVau1t999999999999999999999999999999999"
+        },
+        {
+          "name": "magic_program",
+          "address": "Magic11111111111111111111111111111111111111"
+        },
+        {
+          "name": "permission_program",
+          "address": "ACLseoPoyC3cBqoUtkbjZ4aDrkurZW86v19pXz2XQnp1"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "init_house",
+      "discriminator": [
+        179,
+        199,
+        91,
+        87,
+        163,
+        192,
+        163,
+        183
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "house",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  117,
+                  115,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "scrip_mint",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "house"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "scrip_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "peek_fee",
+          "type": {
+            "array": [
+              "u64",
+              3
+            ]
+          }
+        },
+        {
+          "name": "min_bid",
+          "type": {
+            "array": [
+              "u64",
+              3
+            ]
+          }
+        },
+        {
+          "name": "duration_secs",
+          "type": {
+            "array": [
+              "i64",
+              3
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "init_permissions",
+      "discriminator": [
+        247,
+        240,
+        133,
+        29,
+        26,
+        176,
+        185,
+        61
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "contents",
+          "writable": true
+        },
+        {
+          "name": "pool_ledger",
+          "writable": true
+        },
+        {
+          "name": "contents_permission",
+          "writable": true
+        },
+        {
+          "name": "pool_permission",
+          "writable": true
+        },
+        {
+          "name": "ephemeral_vault",
+          "writable": true,
+          "address": "MagicVau1t999999999999999999999999999999999"
+        },
+        {
+          "name": "magic_program",
+          "address": "Magic11111111111111111111111111111111111111"
+        },
+        {
+          "name": "permission_program",
+          "address": "ACLseoPoyC3cBqoUtkbjZ4aDrkurZW86v19pXz2XQnp1"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "init_pool_ledger",
+      "discriminator": [
+        108,
+        176,
+        45,
+        29,
+        80,
+        226,
+        4,
+        227
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "house",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  117,
+                  115,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_ledger",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  118,
+                  52
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "house"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "init_pool_permission",
+      "docs": [
+        "Create pool permission with the house PDA as standing member so later",
+        "rounds can Update without the previous vault still being on the TEE."
+      ],
+      "discriminator": [
+        110,
+        253,
+        10,
+        13,
+        34,
+        190,
+        42,
+        184
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "pool_ledger",
+          "writable": true
+        },
+        {
+          "name": "pool_permission",
+          "writable": true
+        },
+        {
+          "name": "ephemeral_vault",
+          "writable": true,
+          "address": "MagicVau1t999999999999999999999999999999999"
+        },
+        {
+          "name": "magic_program",
+          "address": "Magic11111111111111111111111111111111111111"
+        },
+        {
+          "name": "permission_program",
+          "address": "ACLseoPoyC3cBqoUtkbjZ4aDrkurZW86v19pXz2XQnp1"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "init_vault_escrow_eata",
+      "docs": [
+        "Create (+ optionally delegate) the vault SCRIP eATA after `create_vault`."
+      ],
+      "discriminator": [
+        34,
+        251,
+        247,
+        184,
+        199,
+        60,
+        168,
+        89
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "house",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  117,
+                  115,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault.house",
+                "account": "Vault"
+              },
+              {
+                "kind": "account",
+                "path": "vault.id",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "scrip_mint"
+        },
+        {
+          "name": "escrow_eata",
+          "writable": true
+        },
+        {
+          "name": "escrow_eata_buffer",
+          "writable": true
+        },
+        {
+          "name": "escrow_eata_record",
+          "writable": true
+        },
+        {
+          "name": "escrow_eata_metadata",
+          "writable": true
+        },
+        {
+          "name": "ephemeral_token_program",
+          "address": "SPLxh1LVZzEkX99H6rqYizhytLWPZVV296zyYDPagv2"
+        },
+        {
+          "name": "delegation_program",
+          "address": "DELeGGvXpWV2fqJUhqcF5ZSYMS4JTLjteaAMARRSaeSh"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "do_delegate",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "place_bid",
+      "discriminator": [
+        238,
+        77,
+        148,
+        91,
+        200,
+        151,
+        92,
+        146
+      ],
+      "accounts": [
+        {
+          "name": "bidder",
+          "signer": true
+        },
+        {
+          "name": "lot",
+          "docs": [
+            "Auction vault PDA (must NOT be named `vault` — macro reserves that for Magic rent vault)"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lot.house",
+                "account": "Vault"
+              },
+              {
+                "kind": "account",
+                "path": "lot.id",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bid",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  105,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lot"
+              },
+              {
+                "kind": "account",
+                "path": "bidder"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bidder_scrip",
+          "docs": [
+            "Bidder SCRIP ATA (canonical ATA on TEE after delegateSpl). Funds locked via approve."
+          ],
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "address": "MagicVau1t999999999999999999999999999999999"
+        },
+        {
+          "name": "magic_program",
+          "address": "Magic11111111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "process_undelegation",
+      "discriminator": [
+        196,
+        28,
+        41,
+        206,
+        48,
+        37,
+        51,
+        167
+      ],
+      "accounts": [
+        {
+          "name": "base_account",
+          "writable": true
+        },
+        {
+          "name": "buffer",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  110,
+                  100,
+                  101,
+                  108,
+                  101,
+                  103,
+                  97,
+                  116,
+                  101,
+                  45,
+                  98,
+                  117,
+                  102,
+                  102,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "base_account"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                181,
+                183,
+                0,
+                225,
+                242,
+                87,
+                58,
+                192,
+                204,
+                6,
+                34,
+                1,
+                52,
+                74,
+                207,
+                151,
+                184,
+                53,
+                6,
+                235,
+                140,
+                229,
+                25,
+                152,
+                204,
+                98,
+                126,
+                24,
+                147,
+                128,
+                167,
+                62
+              ]
+            }
+          }
+        },
+        {
+          "name": "payer",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "account_seeds",
+          "type": {
+            "vec": "bytes"
+          }
+        }
+      ]
+    },
+    {
+      "name": "publish_hint",
+      "discriminator": [
+        180,
+        244,
+        208,
+        17,
+        204,
+        50,
+        240,
+        58
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "hints",
+          "writable": true
+        },
+        {
+          "name": "contents"
+        },
+        {
+          "name": "pool_ledger"
+        }
+      ],
+      "args": [
+        {
+          "name": "index",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "refund_bid",
+      "discriminator": [
+        171,
+        145,
+        79,
+        190,
+        16,
+        50,
+        10,
+        24
+      ],
+      "accounts": [
+        {
+          "name": "bidder",
+          "docs": [
+            "Bidder signs CloseEphemeralPermission (ACL member)."
+          ],
+          "signer": true
+        },
+        {
+          "name": "lot",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lot.house",
+                "account": "Vault"
+              },
+              {
+                "kind": "account",
+                "path": "lot.id",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bid",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  105,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lot"
+              },
+              {
+                "kind": "account",
+                "path": "bidder"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bid_permission",
+          "writable": true
+        },
+        {
+          "name": "escrow",
+          "docs": [
+            "Vault escrow ATA"
+          ],
+          "writable": true
+        },
+        {
+          "name": "bidder_scrip",
+          "docs": [
+            "Bidder SCRIP ATA"
+          ],
+          "writable": true
+        },
+        {
+          "name": "permission_program",
+          "address": "ACLseoPoyC3cBqoUtkbjZ4aDrkurZW86v19pXz2XQnp1"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "address": "MagicVau1t999999999999999999999999999999999"
+        },
+        {
+          "name": "magic_program",
+          "address": "Magic11111111111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "release_pool_items",
+      "docs": [
+        "TEE-only: mark pool items sold / clear reserved after a round already closed",
+        "without pool bit updates (pool stays delegated — MB-015 lifecycle)."
+      ],
+      "discriminator": [
+        161,
+        191,
+        99,
+        148,
+        108,
+        117,
+        150,
+        23
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "house",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  117,
+                  115,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_ledger",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  118,
+                  52
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "house"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "indices",
+          "type": {
+            "vec": "u16"
+          }
+        }
+      ]
+    },
+    {
+      "name": "reveal_contents",
+      "discriminator": [
+        21,
+        139,
+        75,
+        86,
+        97,
+        64,
+        116,
+        246
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "contents",
+          "writable": true
+        },
+        {
+          "name": "pool_ledger",
+          "writable": true
+        },
+        {
+          "name": "contents_permission",
+          "writable": true
+        },
+        {
+          "name": "ephemeral_vault",
+          "writable": true,
+          "address": "MagicVau1t999999999999999999999999999999999"
+        },
+        {
+          "name": "magic_program",
+          "address": "Magic11111111111111111111111111111111111111"
+        },
+        {
+          "name": "permission_program",
+          "address": "ACLseoPoyC3cBqoUtkbjZ4aDrkurZW86v19pXz2XQnp1"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "settle_winning_bid",
+      "discriminator": [
+        115,
+        0,
+        25,
+        200,
+        102,
+        198,
+        12,
+        95
+      ],
+      "accounts": [
+        {
+          "name": "closer",
+          "docs": [
+            "Winner signs CloseEphemeralPermission (bid ACL member per MB-016)."
+          ],
+          "signer": true
+        },
+        {
+          "name": "lot",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lot.house",
+                "account": "Vault"
+              },
+              {
+                "kind": "account",
+                "path": "lot.id",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bid",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  105,
+                  100
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lot"
+              },
+              {
+                "kind": "account",
+                "path": "lot.winner",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bid_permission",
+          "writable": true
+        },
+        {
+          "name": "escrow",
+          "docs": [
+            "Winner SCRIP ATA (bid.escrow) — vault is SPL delegate from place_bid"
+          ],
+          "writable": true
+        },
+        {
+          "name": "treasury",
+          "writable": true
+        },
+        {
+          "name": "permission_program",
+          "address": "ACLseoPoyC3cBqoUtkbjZ4aDrkurZW86v19pXz2XQnp1"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "address": "MagicVau1t999999999999999999999999999999999"
+        },
+        {
+          "name": "magic_program",
+          "address": "Magic11111111111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "touch_account",
+      "docs": [
+        "No-op that forces the TEE to clone a delegated account (e.g. pool after re-delegate)."
+      ],
+      "discriminator": [
+        60,
+        30,
+        223,
+        215,
+        15,
+        51,
+        227,
+        197
+      ],
+      "accounts": [
+        {
+          "name": "account",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "update_house_timing",
+      "discriminator": [
+        0,
+        93,
+        9,
+        145,
+        138,
+        193,
+        167,
+        53
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "house",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  117,
+                  115,
+                  101
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "peek_fee",
+          "type": {
+            "array": [
+              "u64",
+              3
+            ]
+          }
+        },
+        {
+          "name": "min_bid",
+          "type": {
+            "array": [
+              "u64",
+              3
+            ]
+          }
+        },
+        {
+          "name": "duration_secs",
+          "type": {
+            "array": [
+              "i64",
+              3
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "FaucetTicket",
+      "discriminator": [
+        109,
+        251,
+        58,
+        53,
+        201,
+        168,
+        242,
+        87
+      ]
+    },
+    {
+      "name": "House",
+      "discriminator": [
+        21,
+        145,
+        94,
+        109,
+        254,
+        199,
+        210,
+        151
+      ]
+    },
+    {
+      "name": "Item",
+      "discriminator": [
+        92,
+        157,
+        163,
+        130,
+        72,
+        254,
+        86,
+        216
+      ]
+    },
+    {
+      "name": "PoolLedger",
+      "discriminator": [
+        157,
+        75,
+        200,
+        36,
+        138,
+        39,
+        229,
+        193
+      ]
+    },
+    {
+      "name": "Vault",
+      "discriminator": [
+        211,
+        8,
+        232,
+        43,
+        2,
+        152,
+        117,
+        119
+      ]
+    },
+    {
+      "name": "VaultContents",
+      "discriminator": [
+        158,
+        26,
+        167,
+        179,
+        127,
+        35,
+        183,
+        116
+      ]
+    },
+    {
+      "name": "VaultHints",
+      "discriminator": [
+        97,
+        58,
+        50,
+        16,
+        98,
+        92,
+        56,
+        99
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "Unauthorized"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidSize",
+      "msg": "Invalid vault size"
+    },
+    {
+      "code": 6002,
+      "name": "InvalidRarity",
+      "msg": "Invalid rarity"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidCategory",
+      "msg": "Invalid category"
+    },
+    {
+      "code": 6004,
+      "name": "PoolFull",
+      "msg": "Item pool is full"
+    },
+    {
+      "code": 6005,
+      "name": "MissingItem",
+      "msg": "Missing item account"
+    },
+    {
+      "code": 6006,
+      "name": "NotEnoughItems",
+      "msg": "Not enough free items for this vault"
+    },
+    {
+      "code": 6007,
+      "name": "VaultAlreadyActive",
+      "msg": "A vault is already active"
+    },
+    {
+      "code": 6008,
+      "name": "BadStatus",
+      "msg": "Bad vault status for this instruction"
+    },
+    {
+      "code": 6009,
+      "name": "InvalidQueue",
+      "msg": "Invalid VRF queue"
+    },
+    {
+      "code": 6010,
+      "name": "AlreadyFilled",
+      "msg": "Vault already filled"
+    },
+    {
+      "code": 6011,
+      "name": "HintNotDue",
+      "msg": "Hint is not due yet"
+    },
+    {
+      "code": 6012,
+      "name": "HintAlreadyReleased",
+      "msg": "Hint already released"
+    },
+    {
+      "code": 6013,
+      "name": "InvalidHint",
+      "msg": "Invalid hint index or kind"
+    },
+    {
+      "code": 6014,
+      "name": "AuctionClosed",
+      "msg": "Auction is closed"
+    },
+    {
+      "code": 6015,
+      "name": "AuctionStillOpen",
+      "msg": "Auction is still open"
+    },
+    {
+      "code": 6016,
+      "name": "TooManyBidders",
+      "msg": "Too many bidders"
+    },
+    {
+      "code": 6017,
+      "name": "BidBelowMinimum",
+      "msg": "Bid below minimum"
+    },
+    {
+      "code": 6018,
+      "name": "AlreadyBid",
+      "msg": "Already bid on this vault"
+    },
+    {
+      "code": 6019,
+      "name": "AlreadyPeeked",
+      "msg": "Already peeked this vault"
+    },
+    {
+      "code": 6020,
+      "name": "InsufficientFunds",
+      "msg": "Insufficient funds"
+    },
+    {
+      "code": 6021,
+      "name": "MissingBid",
+      "msg": "Missing bid account"
+    },
+    {
+      "code": 6022,
+      "name": "InvalidBid",
+      "msg": "Invalid bid account"
+    },
+    {
+      "code": 6023,
+      "name": "InvalidBidEscrow",
+      "msg": "Invalid bid escrow"
+    },
+    {
+      "code": 6024,
+      "name": "DuplicateBid",
+      "msg": "Duplicate bid"
+    },
+    {
+      "code": 6025,
+      "name": "WrongRefundAccount",
+      "msg": "Wrong refund account"
+    },
+    {
+      "code": 6026,
+      "name": "AlreadyRevealed",
+      "msg": "Contents already revealed"
+    },
+    {
+      "code": 6027,
+      "name": "UnclosedBids",
+      "msg": "Not all bids closed"
+    },
+    {
+      "code": 6028,
+      "name": "UnclosedPeeks",
+      "msg": "Not all peeks closed"
+    },
+    {
+      "code": 6029,
+      "name": "NotUndelegated",
+      "msg": "Vault not undelegated yet"
+    },
+    {
+      "code": 6030,
+      "name": "ItemMismatch",
+      "msg": "Item mismatch on finalize"
+    },
+    {
+      "code": 6031,
+      "name": "FaucetCooldown",
+      "msg": "Faucet cooldown active"
+    },
+    {
+      "code": 6032,
+      "name": "MathOverflow",
+      "msg": "Math overflow"
+    },
+    {
+      "code": 6033,
+      "name": "InvalidAmount",
+      "msg": "Invalid amount"
+    },
+    {
+      "code": 6034,
+      "name": "MintMismatch",
+      "msg": "Mint mismatch"
+    },
+    {
+      "code": 6035,
+      "name": "InvalidTokenOwner",
+      "msg": "Invalid token owner"
+    }
+  ],
+  "types": [
+    {
+      "name": "FaucetTicket",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "last_claim_ts",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Hint",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "kind",
+            "type": "u8"
+          },
+          {
+            "name": "released",
+            "type": "bool"
+          },
+          {
+            "name": "a",
+            "type": "u32"
+          },
+          {
+            "name": "b",
+            "type": "u32"
+          },
+          {
+            "name": "released_ts",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "House",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "scrip_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "item_count",
+            "type": "u16"
+          },
+          {
+            "name": "next_vault_id",
+            "type": "u64"
+          },
+          {
+            "name": "active_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "peek_fee",
+            "type": {
+              "array": [
+                "u64",
+                3
+              ]
+            }
+          },
+          {
+            "name": "min_bid",
+            "type": {
+              "array": [
+                "u64",
+                3
+              ]
+            }
+          },
+          {
+            "name": "duration_secs",
+            "type": {
+              "array": [
+                "i64",
+                3
+              ]
+            }
+          },
+          {
+            "name": "consign_fee_bps",
+            "type": "u16"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Item",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "house",
+            "type": "pubkey"
+          },
+          {
+            "name": "index",
+            "type": "u16"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "rarity",
+            "type": "u8"
+          },
+          {
+            "name": "category",
+            "type": "u8"
+          },
+          {
+            "name": "value",
+            "type": "u32"
+          },
+          {
+            "name": "name",
+            "type": {
+              "array": [
+                "u8",
+                24
+              ]
+            }
+          },
+          {
+            "name": "sold",
+            "type": "bool"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PoolLedger",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "house",
+            "type": "pubkey"
+          },
+          {
+            "name": "reserved",
+            "type": {
+              "array": [
+                "u8",
+                8
+              ]
+            }
+          },
+          {
+            "name": "sold",
+            "type": {
+              "array": [
+                "u8",
+                8
+              ]
+            }
+          },
+          {
+            "name": "item_count",
+            "type": "u16"
+          },
+          {
+            "name": "values",
+            "type": {
+              "array": [
+                "u32",
+                64
+              ]
+            }
+          },
+          {
+            "name": "rarities",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          },
+          {
+            "name": "categories",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Vault",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "house",
+            "type": "pubkey"
+          },
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "size",
+            "type": "u8"
+          },
+          {
+            "name": "item_count",
+            "type": "u8"
+          },
+          {
+            "name": "min_bid",
+            "type": "u64"
+          },
+          {
+            "name": "peek_fee",
+            "type": "u64"
+          },
+          {
+            "name": "duration_secs",
+            "type": "i64"
+          },
+          {
+            "name": "open_ts",
+            "type": "i64"
+          },
+          {
+            "name": "deadline_ts",
+            "type": "i64"
+          },
+          {
+            "name": "hint_times",
+            "type": {
+              "array": [
+                "i64",
+                4
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "VaultStatus"
+              }
+            }
+          },
+          {
+            "name": "bid_count",
+            "type": "u8"
+          },
+          {
+            "name": "closed_bid_count",
+            "type": "u8"
+          },
+          {
+            "name": "peeks_sold",
+            "type": "u8"
+          },
+          {
+            "name": "closed_peek_count",
+            "type": "u8"
+          },
+          {
+            "name": "highest_bid",
+            "type": "u64"
+          },
+          {
+            "name": "winner",
+            "type": "pubkey"
+          },
+          {
+            "name": "winner_index",
+            "type": "u8"
+          },
+          {
+            "name": "revealed_items",
+            "type": {
+              "array": [
+                "u16",
+                8
+              ]
+            }
+          },
+          {
+            "name": "revealed_value",
+            "type": "u32"
+          },
+          {
+            "name": "vrf_request_slot",
+            "type": "u64"
+          },
+          {
+            "name": "escrow",
+            "type": "pubkey"
+          },
+          {
+            "name": "abandoned",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VaultContents",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "items",
+            "type": {
+              "array": [
+                "u16",
+                8
+              ]
+            }
+          },
+          {
+            "name": "len",
+            "type": "u8"
+          },
+          {
+            "name": "total_value",
+            "type": "u32"
+          },
+          {
+            "name": "seed",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "filled",
+            "type": "bool"
+          },
+          {
+            "name": "revealed",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VaultHints",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "hints",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "Hint"
+                  }
+                },
+                4
+              ]
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VaultStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Created"
+          },
+          {
+            "name": "Delegated"
+          },
+          {
+            "name": "Filling"
+          },
+          {
+            "name": "Open"
+          },
+          {
+            "name": "Ended"
+          },
+          {
+            "name": "Revealed"
+          },
+          {
+            "name": "Abandoned"
+          },
+          {
+            "name": "Closed"
+          },
+          {
+            "name": "Settled"
+          }
+        ]
+      }
+    }
+  ]
+}

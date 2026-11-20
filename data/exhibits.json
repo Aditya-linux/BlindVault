@@ -1,0 +1,205 @@
+[
+  {
+    "vaultId": "5",
+    "label": "A · settle_winning_bid (TEE)",
+    "sig": "5zPtiuJ87hHdPEYScaPTEXnKvi8STXwT86jd2FsfnJhexAtVMCYaGkpBPA7LGRJyqhUh26eErJi6F421ksDTgiY7",
+    "layer": "tee",
+    "at": 0
+  },
+  {
+    "vaultId": "5",
+    "label": "B · close_round (TEE)",
+    "sig": "y6EFo55oy1FK9g96wCAb6p8qiWobsYS6p6uVGcnSUw66Y26VD8HZrgFaXG9d8qA4YxyXXoNvfQCo8ea2ZwgsEju",
+    "layer": "tee",
+    "at": 0
+  },
+  {
+    "vaultId": "5",
+    "label": "C · release_pool_items (TEE)",
+    "sig": "3BeKSRuc1JUXsNURCjAVPXfpxbQytmh7KP65AwqUTj4qp4aZa9nNXVYi1JaMNc9Pxnwee6jPEkiWkcLHS3aGzi8v",
+    "layer": "tee",
+    "at": 0
+  },
+  {
+    "vaultId": "5",
+    "label": "D · finalize (Solana)",
+    "sig": "5Nun4qFDYFgv2EQ3Cca7kLz9KRfpFEF96dUTxV8oPMSdUTpHvUcWKLNVVLNzLYtrickVKofjCBuQTHHQWGZFQL8C",
+    "layer": "solana",
+    "at": 0
+  },
+  {
+    "vaultId": "6",
+    "label": "E · end_auction abandoned (TEE)",
+    "sig": "5akNWsTktVVdd6REqTMnRi9Ue6HYS61gEshEhvzMvQr9uqbSdGmCLDPKg9inEcamzkig8fPDch9kj8NyYantnXjn",
+    "layer": "tee",
+    "at": 0
+  },
+  {
+    "vaultId": "6",
+    "label": "F · finalize_abandoned (Solana)",
+    "sig": "25AJfkFhedKPXTmoQpoBZTNjt6GHGGz9V5ykcJ2UfpMoTKC89bza6MEyhkSoKmpmixUknUNj2CYYcFpWfhaiPuTy",
+    "layer": "solana",
+    "at": 0
+  },
+  {
+    "vaultId": "7",
+    "label": "G · create_vault (Solana)",
+    "sig": "3bdzxC1trgjFc4RJ8aibS2VTb8qfBCo7qknzCKqqVv1gLuTsM1e6889QWfSetnwXzBfP2vdt29vABMKEQFGVKBti",
+    "layer": "solana",
+    "at": 0
+  },
+  {
+    "vaultId": "7",
+    "label": "H · fill_vault Open (TEE)",
+    "sig": "Zd8NfHaRQVqVPSF1S7Uwjd81Xe8VL2bqs5cCS9uDNg9i1yyAXEjUyjuNSPzELZdpD1gx8b1cnQxz9aGMWBQstrA",
+    "layer": "tee",
+    "at": 0
+  },
+  {
+    "vaultId": "7",
+    "label": "I · peek fee SCRIP → treasury (Solana)",
+    "sig": "4ANHRXpQ4afEP6SsgoQ1phw74Qgt7NoBp1ph8wuTnEqQUWDRZmaTnkTUM5zWvLXpczixnSHH9rucmAhrTrFFC1sU",
+    "layer": "solana",
+    "at": 0
+  },
+  {
+    "vaultId": "7",
+    "label": "J · buy_peek private keyhole (TEE)",
+    "sig": "XvQar24ZLusBvEPKXZfMkiuvrLvYWHLKdCnPNnVzTmiqpGBkQZjsp11nDpN5AXWZq5Hif3p6xie2LGAngHSLkAb",
+    "layer": "tee",
+    "at": 0
+  },
+  {
+    "vaultId": "7",
+    "label": "K · close_peek (TEE)",
+    "sig": "5hzya7rcZenb2cG8Pm7hLM124hDTNQwyHvJ7x4SxYgwMKM5LGxhtvPNRXpMSHUu6m6y4m7fqQwNGbzVFf3rpaA7v",
+    "layer": "tee",
+    "at": 0
+  },
+  {
+    "vaultId": "7",
+    "label": "L · close_round abandoned (TEE)",
+    "sig": "449ES9uBM8hhyY8GepAhW4LiT51YPSW9FNstwwaiFvmaoFSVqEe4k3Wz231ai8VuEvFut2FWVhgvmqhzFe631w56",
+    "layer": "tee",
+    "at": 0
+  },
+  {
+    "vaultId": "7",
+    "label": "M · finalize_abandoned (Solana)",
+    "sig": "528o2Nu4HUk2TjGVDntX4e1TjvCScCHcM9pTCELFbqPkF8C8VotxkKyTBrDXx8M8CvRCQTbUNDXZmgUjvNzoVK9D",
+    "layer": "solana",
+    "at": 0
+  },
+  {
+    "vaultId": "8",
+    "label": "N · create_vault (Solana)",
+    "sig": "2nwkaawamHiKBeV1SMYQuHoYy6DFBvjwjDUbSdoRFSA39SQATdpwvqTBmbLe1DUMCAcjV9owvJcSR7e4CeMMypYY",
+    "layer": "solana",
+    "at": 0
+  },
+  {
+    "vaultId": "8",
+    "label": "O · fill_vault Open (TEE)",
+    "sig": "3WsuThBLDJEQFVYZniVyhose8qE3ao4Ys39d23E4evFCPkBuGsmqVVcnkuR8rx1ExfGZAQurd6WKM4XLXzGyuonV",
+    "layer": "tee",
+    "at": 0
+  },
+  {
+    "vaultId": "8",
+    "label": "P · place_bid (TEE)",
+    "sig": "5Br79RtgYTWsFAoF4MtqPJp2fMgj68Rp9KcNncYm4jg5pQQWoJm7d3DPhXvKSU2N8FdCB3TV9kK9df6AXXMJ46DR",
+    "layer": "tee",
+    "at": 0
+  },
+  {
+    "vaultId": "8",
+    "label": "Q · peek fee SCRIP → treasury (Solana)",
+    "sig": "4x4JX9XQvMYg91Uehuyf87sLmAVi8pdRNmYjfykatcAKvPsYpCfX3DAKcXo4SJUnUSosTcoC8QehZ6U1eoeZY3X4",
+    "layer": "solana",
+    "at": 0
+  },
+  {
+    "vaultId": "8",
+    "label": "R · buy_peek private keyhole (TEE)",
+    "sig": "5DnHvBaZT3dy71TM47vNch9Zx69cc8bfS8GtNMNA1ySf84HFAgwsgRXPQj1GraV4zgR4F4dKpFNMTUbfzxjZvkKV",
+    "layer": "tee",
+    "at": 0
+  },
+  {
+    "vaultId": "8",
+    "label": "S · publish_hint H2 (TEE)",
+    "sig": "5bHkhhgfv1JP4zA1kb27DcUfco4ZgxKveWgheorWF9KyzwtkK3innWaLptE4xQ9emwghCUxZ8mPqzQVsCACV5Pui",
+    "layer": "tee",
+    "at": 0
+  },
+  {
+    "vaultId": "8",
+    "label": "T · publish_hint H3–H4 (TEE)",
+    "sig": "4G1D4hUJ3idGAq5r8JbEUq3bww6zcVeCSdhVk4fKUV9yUhoQRAXXn6VMiEJGGRuGKXn57FD59zQ6ritwGf6DxDyp",
+    "layer": "tee",
+    "at": 0
+  },
+  {
+    "vaultId": "8",
+    "label": "U · end_auction (TEE)",
+    "sig": "4nz1D5tJDuPXuyiHfbg8tkfo1TejjnfVoohayH2utbL9P2cZfvdhf6spbU9k7ffXzJ5X3dPnF6RuPUFM87vyZ5yf",
+    "layer": "tee",
+    "at": 0
+  },
+  {
+    "vaultId": "8",
+    "label": "V · reveal_contents (TEE)",
+    "sig": "4ARshZ2syoF7Hw1gysDVWEAZTTduAVkaS7WNTqfasYxjJv1i6QkE78AEXK8gnZeBZ6NACGU5h5TTKoQJS4kTzzBK",
+    "layer": "tee",
+    "at": 0
+  },
+  {
+    "vaultId": "8",
+    "label": "W · settle_winning_bid (TEE)",
+    "sig": "27LyW76G6SbmXxof78UriVZ3LU2sxvt3rPQqwj99o3MXDAZFxZfEseksA5LbQq6a5oVLvdzstip3AkiNaQ5vqjM2",
+    "layer": "tee",
+    "at": 0
+  },
+  {
+    "vaultId": "8",
+    "label": "X · close_peek (TEE)",
+    "sig": "5fF3kE5wnm9CMuzir4cpq5TvABhQ5dp245UKpAQiedQPkPfxp2bz4JNU1SK4JTUmxmxtNjug1eu56Vi6N2KpUbqq",
+    "layer": "tee",
+    "at": 0
+  },
+  {
+    "vaultId": "8",
+    "label": "Y · close_round (TEE)",
+    "sig": "2NV9GMDn1pECVUu6iPem9sfYkPxNXowXzGLhc2QqQ5P6TctD7RQ666JMFLgf9FDiDJnkP7dLiSyKg6KZx4NBroT1",
+    "layer": "tee",
+    "at": 0
+  },
+  {
+    "vaultId": "8",
+    "label": "Z · release_pool_items (TEE)",
+    "sig": "3iXkczzYzJrNWVUhnqXS99mnJX9L51FXhYBN2gLctzf7tiPfKMQTBSmJArJy3ffEMqL7xAb3oRftEuG3JAU1pkA1",
+    "layer": "tee",
+    "at": 0
+  },
+  {
+    "vaultId": "8",
+    "label": "AA · finalize (Solana)",
+    "sig": "5uobPAb1N35TujTVvpthMJq3uShP1DJdnGCYUCgujNart5Lg6DQBN8GFkWisrf859t4mW43gvXzreuPQRt753yvP",
+    "layer": "solana",
+    "at": 0
+  },
+  {
+    "vaultId": "9",
+    "label": "AB · create_vault (Solana)",
+    "sig": "3EsNdakZMsRWbhMU9yQxmNsK6RwUmo4WK1m4sQSJGnSVfx9L95JEXimnccZzLCWPJxZbB5qJA1DM5eQAPLtcAQ2",
+    "layer": "solana",
+    "at": 0
+  },
+  {
+    "vaultId": "9",
+    "label": "AC · fill_vault Open (TEE)",
+    "sig": "3yropAyJd4cDda4KpDjTaMV71ZhfrUznvNdaHLbGSk8MVzYyhKubsTR6wYnWvPyxcq4iKq8Wota2Kmkt1c2f8y6v",
+    "layer": "tee",
+    "at": 0
+  }
+]

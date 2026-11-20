@@ -1,19 +1,32 @@
 # Build Status
 
 ```text
-PHASE: live options-chain UI (dark pit) + richer oracle chart
-DONE:
-  - Dark live-trading theme (charcoal + up/down neon, Syne/Sora/IBM Plex Mono)
-  - CallChainBoard: UP | window | DOWN with spot pill + OI bars (your fills)
-  - PriceChart: H/L, session change %, grid, open/settle marks, responsive height
-  - Sticky pit header, Arena strip, dual-column lg layout, denser blotter
-  - Guest practice + honest onchain path still intact (no mocked VRF/oracle proof)
-CHECKED (2026-11-19):
-  - apps/web tsc → PASS
-  - browser localhost:5173 → PASS (live SOL tape, chain UP call armed)
-  - Devnet deploy → still BLOCKED (0.008 SOL; airdrop rate-limited)
-NEXT:
-  1. Fund Devnet wallet ≥ ~2 SOL → deploy pulse_call
-  2. Wire onchain createSessionV2 + popup-free place
-  3. Optional SPL stake (binary-prediction pattern)
+PHASE: Vault 8 FULL LOOP PASS · Vault 9 OPEN for demo
+HACK: Solana Blitz v10 · Entertainment Finance · submit build.magicblock.app/?stage=blitz#submit
+
+DONE (live Devnet/TEE):
+  - Program E9UmQYi4gTHyyQ3SK5B4UCpewBnUBFrEc5NqkkAjr42h
+  - Vault 5 settle PASS · Vault 6/7 abandon+peek PASS
+  - Vault 8 FULL LOOP PASS (bid → peek → hints → end → reveal → settle → close → finalize)
+    end 4nz1D5… · reveal 4ARshZ… · settle 27LyW7… · close_peek 5fF3kE…
+    close_round 2NV9GM… · release 3iXkcz… · finalize 5uobPA…
+    items [1,6,12] · winner 4qwVuf… · Bent Spoon / Dull Peg / Pog Slammer
+  - Warehouse art 40/40 · Proof exhibits stamped · TEST_RUNBOOK.md
+  - Settle note: Model A uses winner SCRIP ATA as escrow; TEE sink = operator ATA
+    (house treasury ATA often unwritable on TEE)
+
+  - Vault 9 Open BF7jyU8Yk7pSRP5GaQ2KqSkFUTw1DmC6oAgChnBPkDXK
+    create 3EsNda… · fill 3yropA… · duration 600s · minBid 10 · items 3
+
+NEXT (evening ship):
+  1. Smoke UI on Vault 9 · follow docs/TEST_RUNBOOK.md
+  2. Bid + peek from UI or scripts/demo-bid + _buy-peek
+  3. After clock: _finish-v8-settle.ts (works for any active revealed vault)
+  4. Record ≤3 min demo · paste URL into BLITZ_FORM_DRAFT.md
+  5. Submit https://build.magicblock.app/?stage=blitz#submit
+  Optional: ER VRF fill spike
+
+HONEST LIMITS: fill = TEE-local entropy (not ER VRF yet) · Devnet/TEE only
+
+WALLET: 4qwVuf…AUy7 · House C7cfsQ… · SCRIP 5RMEdwx… · active Vault 9
 ```

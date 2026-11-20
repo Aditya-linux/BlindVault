@@ -8,16 +8,16 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-pulse_call = "BZ6PBwRABDTDsifdLoBKGbzXbxX5bGxStGyvbzneM9H1"
+blind_vault = "E9UmQYi4gTHyyQ3SK5B4UCpewBnUBFrEc5NqkkAjr42h"
 
 [programs.localnet]
-pulse_call = "HzDCywEJFNHKwVaQ51ouCDC18EMniVDkFGEsfY2774Ka"
+blind_vault = "E9UmQYi4gTHyyQ3SK5B4UCpewBnUBFrEc5NqkkAjr42h"
 
 [provider]
 cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "cargo test -p pulse_call"
+test = "cargo test -p blind_vault"
 
 [hooks]

@@ -1,0 +1,322 @@
+[
+  {
+    "index": 0,
+    "name": "Rusty Hex Nut",
+    "category": 0,
+    "rarity": 0,
+    "value": 2,
+    "image": "rusty-hex-nut.webp"
+  },
+  {
+    "index": 1,
+    "name": "Bent Spoon",
+    "category": 1,
+    "rarity": 0,
+    "value": 2,
+    "image": "bent-spoon.webp"
+  },
+  {
+    "index": 2,
+    "name": "Frayed Ribbon",
+    "category": 2,
+    "rarity": 0,
+    "value": 2,
+    "image": "frayed-ribbon.webp"
+  },
+  {
+    "index": 3,
+    "name": "Chipped Marble",
+    "category": 3,
+    "rarity": 0,
+    "value": 2,
+    "image": "chipped-marble.webp"
+  },
+  {
+    "index": 4,
+    "name": "Dusty Button",
+    "category": 4,
+    "rarity": 0,
+    "value": 2,
+    "image": "dusty-button.webp"
+  },
+  {
+    "index": 5,
+    "name": "Cracked Die",
+    "category": 0,
+    "rarity": 0,
+    "value": 2,
+    "image": "cracked-die.webp"
+  },
+  {
+    "index": 6,
+    "name": "Dull Peg",
+    "category": 1,
+    "rarity": 0,
+    "value": 2,
+    "image": "dull-peg.webp"
+  },
+  {
+    "index": 7,
+    "name": "Worn Cork",
+    "category": 2,
+    "rarity": 0,
+    "value": 2,
+    "image": "worn-cork.webp"
+  },
+  {
+    "index": 8,
+    "name": "Faded Stamp",
+    "category": 3,
+    "rarity": 0,
+    "value": 2,
+    "image": "faded-stamp.webp"
+  },
+  {
+    "index": 9,
+    "name": "Loose Screw",
+    "category": 4,
+    "rarity": 0,
+    "value": 2,
+    "image": "loose-screw.webp"
+  },
+  {
+    "index": 10,
+    "name": "Torn Ticket",
+    "category": 0,
+    "rarity": 0,
+    "value": 2,
+    "image": "torn-ticket.webp"
+  },
+  {
+    "index": 11,
+    "name": "Flat Battery",
+    "category": 1,
+    "rarity": 0,
+    "value": 2,
+    "image": "flat-battery.webp"
+  },
+  {
+    "index": 12,
+    "name": "Pog Slammer",
+    "category": 2,
+    "rarity": 1,
+    "value": 8,
+    "image": "pog-slammer.webp"
+  },
+  {
+    "index": 13,
+    "name": "Pocket Compass",
+    "category": 3,
+    "rarity": 1,
+    "value": 8,
+    "image": "pocket-compass.webp"
+  },
+  {
+    "index": 14,
+    "name": "Tin Whistle",
+    "category": 4,
+    "rarity": 1,
+    "value": 8,
+    "image": "tin-whistle.webp"
+  },
+  {
+    "index": 15,
+    "name": "Rubber Dinosaur",
+    "category": 0,
+    "rarity": 1,
+    "value": 8,
+    "image": "rubber-dinosaur.webp"
+  },
+  {
+    "index": 16,
+    "name": "Glow Sticker",
+    "category": 1,
+    "rarity": 1,
+    "value": 8,
+    "image": "glow-sticker.webp"
+  },
+  {
+    "index": 17,
+    "name": "Arcade Token",
+    "category": 2,
+    "rarity": 1,
+    "value": 8,
+    "image": "arcade-token.webp"
+  },
+  {
+    "index": 18,
+    "name": "Keychain Bell",
+    "category": 3,
+    "rarity": 1,
+    "value": 8,
+    "image": "keychain-bell.webp"
+  },
+  {
+    "index": 19,
+    "name": "Postcard Stack",
+    "category": 4,
+    "rarity": 1,
+    "value": 8,
+    "image": "postcard-stack.webp"
+  },
+  {
+    "index": 20,
+    "name": "Magnet Set",
+    "category": 0,
+    "rarity": 1,
+    "value": 8,
+    "image": "magnet-set.webp"
+  },
+  {
+    "index": 21,
+    "name": "Bead Bracelet",
+    "category": 1,
+    "rarity": 1,
+    "value": 8,
+    "image": "bead-bracelet.webp"
+  },
+  {
+    "index": 22,
+    "name": "Matchbox Car",
+    "category": 2,
+    "rarity": 1,
+    "value": 8,
+    "image": "matchbox-car.webp"
+  },
+  {
+    "index": 23,
+    "name": "Yo-Yo Classic",
+    "category": 3,
+    "rarity": 1,
+    "value": 8,
+    "image": "yo-yo-classic.webp"
+  },
+  {
+    "index": 24,
+    "name": "Sticker Sheet",
+    "category": 4,
+    "rarity": 1,
+    "value": 8,
+    "image": "sticker-sheet.webp"
+  },
+  {
+    "index": 25,
+    "name": "Coin Purse",
+    "category": 0,
+    "rarity": 1,
+    "value": 8,
+    "image": "coin-purse.webp"
+  },
+  {
+    "index": 26,
+    "name": "Mystery Floppy",
+    "category": 1,
+    "rarity": 2,
+    "value": 30,
+    "image": "mystery-floppy.webp"
+  },
+  {
+    "index": 27,
+    "name": "Neon Cartridge",
+    "category": 2,
+    "rarity": 2,
+    "value": 30,
+    "image": "neon-cartridge.webp"
+  },
+  {
+    "index": 28,
+    "name": "Holo Card Pack",
+    "category": 3,
+    "rarity": 2,
+    "value": 30,
+    "image": "holo-card-pack.webp"
+  },
+  {
+    "index": 29,
+    "name": "Brass Spinner",
+    "category": 4,
+    "rarity": 2,
+    "value": 30,
+    "image": "brass-spinner.webp"
+  },
+  {
+    "index": 30,
+    "name": "Crystal Marble",
+    "category": 0,
+    "rarity": 2,
+    "value": 30,
+    "image": "crystal-marble.webp"
+  },
+  {
+    "index": 31,
+    "name": "Clockwork Mouse",
+    "category": 1,
+    "rarity": 2,
+    "value": 30,
+    "image": "clockwork-mouse.webp"
+  },
+  {
+    "index": 32,
+    "name": "Signal Badge",
+    "category": 2,
+    "rarity": 2,
+    "value": 30,
+    "image": "signal-badge.webp"
+  },
+  {
+    "index": 33,
+    "name": "Retro Lens",
+    "category": 3,
+    "rarity": 2,
+    "value": 30,
+    "image": "retro-lens.webp"
+  },
+  {
+    "index": 34,
+    "name": "Tin Robot Boxed",
+    "category": 4,
+    "rarity": 3,
+    "value": 90,
+    "image": "tin-robot-boxed.webp"
+  },
+  {
+    "index": 35,
+    "name": "Signed Card",
+    "category": 0,
+    "rarity": 3,
+    "value": 90,
+    "image": "signed-card.webp"
+  },
+  {
+    "index": 36,
+    "name": "Gold-Plated Cog",
+    "category": 1,
+    "rarity": 3,
+    "value": 90,
+    "image": "gold-plated-cog.webp"
+  },
+  {
+    "index": 37,
+    "name": "Velvet Dice Cup",
+    "category": 2,
+    "rarity": 3,
+    "value": 90,
+    "image": "velvet-dice-cup.webp"
+  },
+  {
+    "index": 38,
+    "name": "Crown Cap Prototype",
+    "category": 3,
+    "rarity": 4,
+    "value": 300,
+    "image": "crown-cap-prototype.webp"
+  },
+  {
+    "index": 39,
+    "name": "Vault Master Key",
+    "category": 4,
+    "rarity": 4,
+    "value": 300,
+    "image": "vault-master-key.webp"
+  }
+]
