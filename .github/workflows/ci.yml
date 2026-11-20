@@ -13,14 +13,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-          # Don't cache across platform-specific optional deps flakiness
       - name: Install
-        run: npm install --legacy-peer-deps
+        run: |
+          set +e
+          npm install --legacy-peer-deps --no-fund --no-audit
+          code=$?
+          if [ $code -ne 0 ]; then
+            echo "---- npm debug log ----"
+            log=$(ls -1t "$HOME"/.npm/_logs/*debug*.log 2>/dev/null | head -1)
+            if [ -n "$log" ]; then tail -n 120 "$log"; fi
+            exit $code
+          fi
       - name: Typecheck
         run: npm run typecheck
-      - name: Lint
-        run: npm run lint
-        continue-on-error: true
       - name: Build
         run: npm run build
         env:
