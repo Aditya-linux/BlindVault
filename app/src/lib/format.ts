@@ -4,12 +4,12 @@ export function shortAddr(addr: string | null | undefined): string {
 }
 
 export function rarityLabel(r: number): string {
-  // TCG-style tiers shown in the warehouse (maps 1:1 to on-chain rarity u8)
-  return ["Simple", "Common", "Shiny", "Epic", "Legendary"][r] ?? "?";
+  // Maps 1:1 to on-chain rarity u8
+  return ["Common", "Silver", "Shiny", "Gold", "Legendary"][r] ?? "?";
 }
 
 export function categoryLabel(c: number): string {
-  return ["Toys", "Tech", "Cards", "Coins", "Oddities"][c] ?? "?";
+  return ["Spirit", "Drake", "Beast", "Aviary", "Mythic"][c] ?? "?";
 }
 
 export function sizeLabel(s: number): string {

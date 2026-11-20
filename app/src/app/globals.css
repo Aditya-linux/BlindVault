@@ -295,14 +295,31 @@
   overflow: hidden;
   border: 1px solid color-mix(in oklab, var(--card-accent) 25%, transparent);
   background:
-    radial-gradient(80% 70% at 50% 30%, color-mix(in oklab, var(--card-foil) 50%, transparent), transparent 70%),
-    linear-gradient(180deg, var(--card-bg), color-mix(in oklab, var(--card-mid) 40%, var(--card-bg)));
+    radial-gradient(80% 70% at 50% 30%, color-mix(in oklab, var(--card-foil) 40%, transparent), transparent 70%),
+    linear-gradient(180deg, #f7f5f1, color-mix(in oklab, var(--card-mid) 25%, #ebe6dc));
 }
 
-.collectible-card__creature {
-  width: 100%;
+.collectible-card__img-wrap {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 0.55rem;
+}
+
+.collectible-card__img {
+  object-fit: contain !important;
+  object-position: center;
+  pointer-events: none;
+}
+
+.collectible-card__img-fallback {
+  display: grid;
+  place-items: center;
   height: 100%;
-  display: block;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  color: var(--color-steel);
 }
 
 .collectible-card__no {
@@ -338,22 +355,30 @@
   color: var(--color-steel-deep);
 }
 
-.rarity-0 { color: #5c5954; }
-.rarity-1 { color: #2f4a3c; border-color: #b7c8bc; background: #eef4f0; }
+.rarity-0 {
+  color: #5c5954;
+  border-color: #d0ccc4;
+  background: #f4f2ee;
+}
+.rarity-1 {
+  color: #3a4a5a;
+  border-color: #b8c4d0;
+  background: linear-gradient(120deg, #eef2f6, #e4eaf0);
+}
 .rarity-2 {
   color: #1f4f6e;
   border-color: #8ec8e4;
   background: linear-gradient(120deg, #e8f7ff, #f4efff 55%, #e8fff4);
 }
 .rarity-3 {
-  color: #5a2f8a;
-  border-color: #c9a8f0;
-  background: linear-gradient(120deg, #f4eaff, #ffeef8);
-}
-.rarity-4 {
   color: #6a5210;
   border-color: #e0c35a;
-  background: linear-gradient(120deg, #fff4c8, #ffe9a8 50%, #fff8e0);
+  background: linear-gradient(120deg, #fff6d0, #ffe9a8);
+}
+.rarity-4 {
+  color: #5a3a08;
+  border-color: #d4a824;
+  background: linear-gradient(120deg, #fff0b0, #ffd978 50%, #fff8e0);
 }
 
 .collectible-card__type {
@@ -402,13 +427,21 @@
   opacity: 0.85;
 }
 
+.collectible-card--silver .collectible-card__frame {
+  border-color: #8a9aac;
+}
+
 .collectible-card--shiny .collectible-card__frame {
   border-color: color-mix(in oklab, #5aa0c8 55%, var(--card-accent));
 }
 
-.collectible-card--epic .collectible-card__frame {
-  border-color: color-mix(in oklab, #8a4fc8 60%, var(--card-accent));
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, #c9a8f0 40%, transparent);
+.collectible-card--gold {
+  background: linear-gradient(160deg, #fff8e0 0%, #f7ecd0 45%, #efe2b8 100%);
+  border-color: #d4b44a;
+}
+
+.collectible-card--gold .collectible-card__frame {
+  border-color: #c9a43a;
 }
 
 .collectible-card--legendary {
@@ -422,6 +455,66 @@
 
 .collectible-card--legendary .collectible-card__frame {
   border-color: #b8922a;
+}
+
+.odds-board {
+  border: 1px solid var(--color-line);
+  border-radius: 18px;
+  background: color-mix(in oklab, var(--color-paper) 88%, transparent);
+  padding: 1rem 1.1rem 1.05rem;
+  max-width: 42rem;
+}
+
+.odds-board__title {
+  margin: 0 0 0.65rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-steel);
+}
+
+.odds-board__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.odds-board__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  border-radius: 10px;
+  border: 1px solid var(--color-line);
+  padding: 0.55rem 0.45rem;
+  text-align: center;
+}
+
+.odds-board__label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.odds-board__chance {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+
+@media (max-width: 640px) {
+  .odds-board__list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .collectible-card__name {
+    font-size: 0.82rem;
+  }
 }
 
 .collectible-card--compact .collectible-card__name {
