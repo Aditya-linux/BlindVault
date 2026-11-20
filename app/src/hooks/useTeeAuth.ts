@@ -71,14 +71,16 @@ function formatTeeSignError(e: unknown): string {
         ? String((e as { message: unknown }).message)
         : String(e);
   const lower = raw.toLowerCase();
+  if (lower.includes("unexpected error")) {
+    return `${raw} — Hard-refresh the page, disconnect Phantom, reconnect, then approve the Message request. If it still fails, try Solflare.`;
+  }
   if (
-    lower.includes("unexpected error") ||
     lower.includes("user rejected") ||
     lower.includes("rejected") ||
     lower.includes("cancelled") ||
     lower.includes("canceled")
   ) {
-    return `${raw} — In Phantom: Settings → Developer Settings → enable Testnet Mode, then set network to Devnet. Approve the message popup (not a transaction).`;
+    return `${raw} — Approve the Phantom message popup (not a transaction).`;
   }
   if (lower.includes("signmessage") || lower.includes("sign message")) {
     return `${raw} — Use Phantom or Solflare with message signing enabled.`;
