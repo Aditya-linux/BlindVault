@@ -2,13 +2,15 @@
 
 import { useMemo } from "react";
 import { useParams } from "next/navigation";
-import { motion } from "@/components/motion";
-import { categoryLabel, rarityLabel, shortAddr } from "@/lib/format";
+import { CollectibleCard } from "@/components/CollectibleCard";
+import { shortAddr } from "@/lib/format";
 import { housePda, vaultPda } from "@/lib/pdas";
 import { useVaultLive } from "@/hooks/useVaultLive";
 import { useItemsOnChain } from "@/hooks/useItemsOnChain";
-import { MotionNavLink, PageEnter, soft } from "@/components/motion";
-import { buttonVariants } from "@/components/ui/button";
+import { useMyPeek } from "@/hooks/useBuyPeek";
+import { useClosePeek } from "@/hooks/useClosePeek";
+import { MotionNavLink, PageEnter, soft, motion } from "@/components/motion";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 
 export default function RevealPage() {
@@ -21,59 +23,113 @@ export default function RevealPage() {
   );
   const vaultQ = useVaultLive(vaultPk, id);
   const itemsQ = useItemsOnChain();
+  const myPeek = useMyPeek(vaultPk);
+  const closePeek = useClosePeek(vaultPk, id);
   const revealed = vaultQ.data?.revealedItems ?? [];
-  const lines =
-    revealed.length > 0
-      ? revealed.map((idx) => {
-          const it = itemsQ.data?.find((x) => x.index === idx);
-          if (!it) return `#${idx}`;
-          return `${it.name} · ${rarityLabel(it.rarity)} · ${categoryLabel(it.category)} · ${it.value} SCRIP`;
-        })
-      : vaultQ.data?.status === "Open" || vaultQ.data?.status === "Ended"
-        ? ["(vault still sealed — wait for reveal)"]
-        : ["(no revealed items yet)"];
+  const cards = revealed
+    .map((idx) => itemsQ.data?.find((x) => x.index === idx))
+    .filter((x): x is NonNullable<typeof x> => Boolean(x));
+  const sealed =
+    vaultQ.data?.status === "Open" || vaultQ.data?.status === "Ended";
+  const needsPeekClose =
+    vaultQ.data?.status === "Revealed" && Boolean(myPeek.data);
 
   return (
-    <PageEnter>
-      <section className="bv-card mx-auto max-w-2xl p-6 sm:p-8">
-        <header>
-          <p className="text-[13px] font-medium text-steel-deep">Reveal</p>
-          <h1 className="mt-1 font-display text-4xl tracking-[-0.03em]">
-            Lot {params.id}
-          </h1>
-          <p className="mt-2 text-[14px] text-steel-deep">
-            Status {vaultQ.data?.status ?? "…"} · on-chain items only
-          </p>
-        </header>
+    <PageEnter className="mx-auto flex max-w-3xl flex-col gap-6">
+      <header>
+        <p className="text-[13px] font-medium text-steel-deep">Reveal</p>
+        <h1 className="mt-1 font-display text-4xl tracking-[-0.03em]">
+          Lot {params.id}
+        </h1>
+        <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-steel-deep">
+          After the clock, the sealed cards open. The highest sealed bid wins
+          these creature cards into their wallet (see <strong>My bids</strong>).
+        </p>
+        <p className="mt-3 font-mono text-[11px] text-steel">
+          Status {vaultQ.data?.status ?? "…"} · high bid{" "}
+          {(vaultQ.data?.highestBid ?? 0) / 1_000_000} SCRIP · winner{" "}
+          {shortAddr(vaultQ.data?.winner)}
+        </p>
+      </header>
 
-        <motion.pre
-          className="mt-6 overflow-x-auto rounded-2xl border border-line bg-mist p-4 font-mono text-xs leading-relaxed text-ink"
+      {sealed && (
+        <p className="bv-card p-5 text-[14px] text-steel-deep">
+          Still sealed — wait for the operator/keeper to run reveal after the
+          deadline.
+        </p>
+      )}
+
+      {needsPeekClose && (
+        <div className="bv-card flex flex-col gap-3 p-5">
+          <p className="text-[14px] text-steel-deep">
+            You bought a private peek on this lot. Release it so the round can
+            finalize and a new vault can open.
+          </p>
+          <Button
+            onClick={() => void closePeek.close()}
+            disabled={closePeek.busy}
+          >
+            {closePeek.busy ? "Releasing…" : "Release my peek"}
+          </Button>
+          {closePeek.error && (
+            <p className="font-mono text-[11px] text-stamp-red-deep">
+              {closePeek.error}
+            </p>
+          )}
+          {closePeek.sig && (
+            <p className="font-mono text-[11px] text-accent">Peek released</p>
+          )}
+        </div>
+      )}
+
+      {!sealed && cards.length === 0 && (
+        <p className="bv-card p-5 text-[14px] text-steel-deep">
+          No revealed items yet (abandoned lots may have returned cards to the
+          pool).
+        </p>
+      )}
+
+      {cards.length > 0 && (
+        <motion.div
+          className="grid grid-cols-2 gap-3 sm:grid-cols-3"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={soft}
         >
-{`ROCCO'S LOCK-UP AUCTIONS
-LOT #${params.id} · ${vaultQ.data?.status ?? "…"}
---------------------------------
-${lines.join("\n")}
---------------------------------
-TOTAL ${vaultQ.data?.revealedValue ?? "—"} SCRIP
-WINNER ${shortAddr(vaultQ.data?.winner)}
-HIGH BID ${(vaultQ.data?.highestBid ?? 0) / 1_000_000} SCRIP`}
-        </motion.pre>
+          {cards.map((item) => (
+            <CollectibleCard
+              key={item.index}
+              index={item.index}
+              name={item.name}
+              rarity={item.rarity}
+              category={item.category}
+              value={item.value}
+              sold={item.sold}
+            />
+          ))}
+        </motion.div>
+      )}
 
-        <div className="mt-5 flex flex-wrap gap-3">
-          <MotionNavLink
-            href={`/vault/${params.id}/proof`}
-            className={cn(buttonVariants({ variant: "paper" }))}
-          >
-            Evidence
-          </MotionNavLink>
-          <MotionNavLink href="/" className={cn(buttonVariants())}>
-            Home
-          </MotionNavLink>
-        </div>
-      </section>
+      <div className="flex flex-wrap gap-3">
+        <MotionNavLink
+          href="/me"
+          className={cn(buttonVariants())}
+        >
+          My cards
+        </MotionNavLink>
+        <MotionNavLink
+          href={`/vault/${params.id}/proof`}
+          className={cn(buttonVariants({ variant: "paper" }))}
+        >
+          Evidence
+        </MotionNavLink>
+        <MotionNavLink
+          href="/warehouse"
+          className={cn(buttonVariants({ variant: "paper" }))}
+        >
+          Warehouse
+        </MotionNavLink>
+      </div>
     </PageEnter>
   );
 }

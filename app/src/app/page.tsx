@@ -33,13 +33,14 @@ export default function LotPage() {
         </motion.h1>
 
         <motion.p
-          className="mx-auto mt-6 max-w-md text-[17px] leading-relaxed text-steel-deep"
+          className="mx-auto mt-6 max-w-lg text-[17px] leading-relaxed text-steel-deep"
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
         >
-          Sealed lots. Private peeks. Contents stay inside a MagicBlock TEE
-          until the gavel falls.
+          Bid SCRIP on a sealed lot of creature cards. Nobody can see the
+          cards or other bids until reveal — then the winner owns them in
+          their wallet.
         </motion.p>
 
         <motion.div
