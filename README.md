@@ -6,6 +6,7 @@ Nobody (not even the house) can read what’s in the vault while it’s live. Hi
 
 Built for **[Solana Blitz v10](https://luma.com/hedv5sgh)** by MagicBlock — theme: **Entertainment Finance**.
 
+**Live:** [blind-vault-amber.vercel.app](https://blind-vault-amber.vercel.app)  
 **Repo:** [github.com/Aditya-linux/BlindVault](https://github.com/Aditya-linux/BlindVault)  
 **Submit:** [build.magicblock.app/?stage=blitz#submit](https://build.magicblock.app/?stage=blitz#submit)
 

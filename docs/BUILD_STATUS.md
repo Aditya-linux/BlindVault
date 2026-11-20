@@ -19,13 +19,13 @@ DONE (live Devnet/TEE):
     create 3EsNda… · fill 3yropA… · duration 600s · minBid 10 · items 3
 
 UI: Warehouse/Me use collectible creature cards (Simple→Shiny→Legendary) · original SVG
-CI: clean lockfile · npm install --force on ubuntu · program tests green
-Vercel: vercel.json + ignoreDuringBuilds · env from .env.example
+CI: green on main (web typecheck+build · program tests)
+LIVE: https://blind-vault-amber.vercel.app
+  /api/house PASS · /api/items batched fetch · Next 15.1.12
 
 NEXT (evening ship):
-  1. Deploy Vercel · paste site URL into BLITZ_FORM_DRAFT.md
-  2. Smoke UI on Vault 9 · docs/TEST_RUNBOOK.md
-  3. Record ≤3 min demo · submit build.magicblock.app/?stage=blitz#submit
+  1. Smoke UI on Vault 9 · docs/TEST_RUNBOOK.md
+  2. Record ≤3 min demo · submit build.magicblock.app/?stage=blitz#submit
   Optional: ER VRF fill spike
 
 HONEST LIMITS: fill = TEE-local entropy (not ER VRF yet) · Devnet/TEE only

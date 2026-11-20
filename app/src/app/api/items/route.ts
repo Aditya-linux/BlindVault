@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { AnchorProvider, Idl, Program } from "@coral-xyz/anchor";
 import idl from "@/idl/blind_vault.json";
-import { PROGRAM_ID, SOLANA_RPC } from "@/lib/connections";
+import { SOLANA_RPC } from "@/lib/connections";
 import { housePda, itemPda } from "@/lib/pdas";
 
 export const runtime = "nodejs";
@@ -15,9 +15,27 @@ function decodeName(raw: number[] | Uint8Array): string {
   return Buffer.from(Uint8Array.from(slice)).toString("utf8");
 }
 
+async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  let last: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      last = e;
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!msg.includes("429") || i === attempts - 1) throw e;
+      await new Promise((r) => setTimeout(r, 400 * (i + 1)));
+    }
+  }
+  throw last;
+}
+
 export async function GET() {
   try {
-    const connection = new Connection(SOLANA_RPC, "confirmed");
+    const connection = new Connection(SOLANA_RPC, {
+      commitment: "confirmed",
+      disableRetryOnRateLimit: false,
+    });
     const wallet = {
       publicKey: PublicKey.default,
       signTransaction: async <T>(tx: T) => tx,
@@ -29,52 +47,58 @@ export async function GET() {
         commitment: "confirmed",
       }),
     );
-    void PROGRAM_ID;
-    const house = await (program.account as any).house.fetchNullable(
-      housePda(),
-    );
+    const accountsApi = program.account as any;
+
+    const house = (await withRetry(() =>
+      accountsApi.house.fetchNullable(housePda()),
+    )) as { itemCount: number | bigint } | null;
     if (!house) {
       return NextResponse.json({ items: [] });
     }
+
     const count = Number(house.itemCount);
+    const pdas = Array.from({ length: count }, (_, index) => itemPda(index));
+
+    // One batched RPC instead of N parallel fetchNullable calls (avoids 429s)
+    const accounts: Array<{
+      index: number | bigint;
+      mint: PublicKey;
+      rarity: number;
+      category: number;
+      value: number | bigint;
+      name: number[] | Uint8Array;
+      sold: boolean;
+      owner: PublicKey;
+    } | null> = await withRetry(() => accountsApi.item.fetchMultiple(pdas));
+
     const items = [];
-    const chunk = 10;
-    for (let start = 0; start < count; start += chunk) {
-      const idxs = Array.from(
-        { length: Math.min(chunk, count - start) },
-        (_, i) => start + i,
-      );
-      const rows = await Promise.all(
-        idxs.map(async (index) => {
-          const acct = await (program.account as any).item.fetchNullable(
-            itemPda(index),
-          );
-          if (!acct) return null;
-          const owner = (acct.owner as PublicKey).toBase58();
-          return {
-            index: Number(acct.index),
-            mint: (acct.mint as PublicKey).toBase58(),
-            rarity: Number(acct.rarity),
-            category: Number(acct.category),
-            value: Number(acct.value),
-            name: decodeName(acct.name as number[]),
-            sold: Boolean(acct.sold),
-            owner,
-            ownerShort: `${owner.slice(0, 4)}…${owner.slice(-4)}`,
-          };
-        }),
-      );
-      for (const row of rows) {
-        if (row) items.push(row);
-      }
+    for (const acct of accounts) {
+      if (!acct) continue;
+      const owner = acct.owner.toBase58();
+      items.push({
+        index: Number(acct.index),
+        mint: acct.mint.toBase58(),
+        rarity: Number(acct.rarity),
+        category: Number(acct.category),
+        value: Number(acct.value),
+        name: decodeName(acct.name),
+        sold: Boolean(acct.sold),
+        owner,
+        ownerShort: `${owner.slice(0, 4)}…${owner.slice(-4)}`,
+      });
     }
-    return NextResponse.json({
-      items: items.sort((a, b) => a.index - b.index),
-    });
-  } catch (e) {
+
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : String(e), items: [] },
-      { status: 500 },
+      { items: items.sort((a, b) => a.index - b.index) },
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60",
+        },
+      },
     );
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    const status = msg.includes("429") ? 503 : 500;
+    return NextResponse.json({ error: msg, items: [] }, { status });
   }
 }

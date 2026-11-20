@@ -19,7 +19,7 @@ Sealed storage-unit auctions on Solana Devnet. Vault contents, sealed bids, and 
 Privacy · Games · Consumer
 
 ## Project website
-_(paste Vercel / public URL when posted)_
+https://blind-vault-amber.vercel.app
 
 ## GitHub
 https://github.com/Aditya-linux/BlindVault
