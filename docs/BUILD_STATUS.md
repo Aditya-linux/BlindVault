@@ -18,13 +18,14 @@ DONE (live Devnet/TEE):
   - Vault 9 Open BF7jyU8Yk7pSRP5GaQ2KqSkFUTw1DmC6oAgChnBPkDXK
     create 3EsNda… · fill 3yropA… · duration 600s · minBid 10 · items 3
 
-UI: Warehouse/Me use collectible creature cards (Simple→Shiny→Legendary) · original SVG
+UI: Warehouse/Me use collectible creature cards · landing full-bleed video hero
+  Live no longer auto-routes to Reveal (ended banner + CTA instead)
 CI: green on main (web typecheck+build · program tests)
 LIVE: https://blind-vault-amber.vercel.app
   /api/house PASS · /api/items batched fetch · Next 15.1.12
 
 NEXT (evening ship):
-  1. Smoke UI on Vault 9 · docs/TEST_RUNBOOK.md
+  1. Redeploy UI (hero video + Live fix) · smoke Vault flow
   2. Record ≤3 min demo · submit build.magicblock.app/?stage=blitz#submit
   Optional: ER VRF fill spike
 

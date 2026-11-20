@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { motion } from "@/components/motion";
 import { hintCopy } from "@/lib/hints";
@@ -18,11 +18,11 @@ import { useTeeAuth } from "@/hooks/useTeeAuth";
 import { useActiveVault } from "@/hooks/useActiveVault";
 import { solanaTxUrl, teeTxUrl } from "@/lib/explorer";
 import { MotionNavLink, PageEnter, soft, spring } from "@/components/motion";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/cn";
 
 export default function LiveVaultPage() {
   const params = useParams<{ id: string }>();
-  const router = useRouter();
   const id = Number(params.id);
   const house = useMemo(() => housePda(), []);
   const vaultPk = useMemo(
@@ -51,17 +51,11 @@ export default function LiveVaultPage() {
     setAmount((prev) => (prev < minBid ? minBid : prev));
   }, [minBid]);
 
-  useEffect(() => {
-    const v = vaultQ.data;
-    if (!v) return;
-    if (
-      v.status === "Revealed" ||
-      v.status === "Closed" ||
-      v.status === "Settled"
-    ) {
-      router.replace(`/vault/${v.id}/reveal`);
-    }
-  }, [vaultQ.data, router]);
+  const lotFinished =
+    vaultQ.data?.status === "Revealed" ||
+    vaultQ.data?.status === "Closed" ||
+    vaultQ.data?.status === "Settled" ||
+    vaultQ.data?.status === "Abandoned";
 
   const hints = hintsQ.data?.hints ?? [];
   const released = hints.filter((h) => h.released);
@@ -82,6 +76,20 @@ export default function LiveVaultPage() {
 
   return (
     <PageEnter>
+      {lotFinished && (
+        <div className="bv-card mb-6 flex flex-wrap items-center justify-between gap-3 p-4">
+          <p className="text-[14px] text-steel-deep">
+            This lot is finished — open Reveal to see the cards and winner.
+          </p>
+          <MotionNavLink
+            href={`/vault/${params.id}/reveal`}
+            className={cn(buttonVariants({ size: "sm" }))}
+          >
+            Open Reveal
+          </MotionNavLink>
+        </div>
+      )}
+
       <header className="mb-8 flex flex-wrap items-end justify-between gap-6">
         <div>
           <p className="text-[13px] font-medium text-steel-deep">Live lot</p>
