@@ -22,8 +22,7 @@ Privacy · Games · Consumer
 _(paste Vercel / public URL when posted)_
 
 ## GitHub
-https://github.com/AdityaNishad77/magicblock
-_(confirm exact repo URL / visibility before submit)_
+https://github.com/Aditya-linux/BlindVault
 
 ## Pitch & Demo
 _(paste Loom / YouTube after recording)_  
