@@ -64,7 +64,9 @@ export default function PaddlePage() {
                 )}
               </div>
               <p className="mt-1 text-[13px] text-steel-deep">
-                Free signature unlocks private TEE reads.
+                Free signature unlocks private TEE reads. Phantom must be on{" "}
+                <span className="font-medium text-ink">Devnet</span> (Settings →
+                Developer Settings → Testnet Mode).
               </p>
               <Button
                 variant="paper"

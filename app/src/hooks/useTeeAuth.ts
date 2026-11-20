@@ -40,8 +40,7 @@ export function useTeeAuth() {
       const t = await fetchTeeToken(publicKey, signMessage);
       return t;
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setError(msg);
+      setError(formatTeeSignError(e));
       return null;
     } finally {
       setBusy(false);
@@ -62,4 +61,27 @@ export function useTeeAuth() {
     ensureToken,
     hasSignMessage: Boolean(signMessage),
   };
+}
+
+function formatTeeSignError(e: unknown): string {
+  const raw =
+    e instanceof Error
+      ? e.message
+      : typeof e === "object" && e && "message" in e
+        ? String((e as { message: unknown }).message)
+        : String(e);
+  const lower = raw.toLowerCase();
+  if (
+    lower.includes("unexpected error") ||
+    lower.includes("user rejected") ||
+    lower.includes("rejected") ||
+    lower.includes("cancelled") ||
+    lower.includes("canceled")
+  ) {
+    return `${raw} — In Phantom: Settings → Developer Settings → enable Testnet Mode, then set network to Devnet. Approve the message popup (not a transaction).`;
+  }
+  if (lower.includes("signmessage") || lower.includes("sign message")) {
+    return `${raw} — Use Phantom or Solflare with message signing enabled.`;
+  }
+  return raw;
 }
