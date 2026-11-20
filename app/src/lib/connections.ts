@@ -1,14 +1,28 @@
 import { Connection } from "@solana/web3.js";
 
-export const SOLANA_RPC =
-  process.env.NEXT_PUBLIC_SOLANA_RPC ?? "https://api.devnet.solana.com";
-export const TEE_RPC =
-  process.env.NEXT_PUBLIC_TEE_RPC ?? "https://devnet-tee.magicblock.app";
-export const TEE_WS =
-  process.env.NEXT_PUBLIC_TEE_WS ?? "wss://devnet-tee.magicblock.app";
-export const PROGRAM_ID =
-  process.env.NEXT_PUBLIC_PROGRAM_ID ??
-  "E9UmQYi4gTHyyQ3SK5B4UCpewBnUBFrEc5NqkkAjr42h";
+function env(name: string, fallback: string): string {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  // Strip accidental CRLF / quotes from `vercel env add` pipes on Windows
+  return raw.replace(/^["']|["']$/g, "").replace(/\\r\\n$/g, "").trim();
+}
+
+export const SOLANA_RPC = env(
+  "NEXT_PUBLIC_SOLANA_RPC",
+  "https://api.devnet.solana.com",
+);
+export const TEE_RPC = env(
+  "NEXT_PUBLIC_TEE_RPC",
+  "https://devnet-tee.magicblock.app",
+);
+export const TEE_WS = env(
+  "NEXT_PUBLIC_TEE_WS",
+  "wss://devnet-tee.magicblock.app",
+);
+export const PROGRAM_ID = env(
+  "NEXT_PUBLIC_PROGRAM_ID",
+  "E9UmQYi4gTHyyQ3SK5B4UCpewBnUBFrEc5NqkkAjr42h",
+);
 
 export const solana = new Connection(SOLANA_RPC, "confirmed");
 
