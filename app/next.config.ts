@@ -3,6 +3,10 @@ import path from "node:path";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  eslint: {
+    // Lint locally; don't block Vercel/CI production builds on missing eslint package
+    ignoreDuringBuilds: true,
+  },
   webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,

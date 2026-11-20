@@ -18,12 +18,14 @@ DONE (live Devnet/TEE):
   - Vault 9 Open BF7jyU8Yk7pSRP5GaQ2KqSkFUTw1DmC6oAgChnBPkDXK
     create 3EsNda… · fill 3yropA… · duration 600s · minBid 10 · items 3
 
+UI: Warehouse/Me use collectible creature cards (Simple→Shiny→Legendary) · original SVG
+CI: clean lockfile · npm install --force on ubuntu · program tests green
+Vercel: vercel.json + ignoreDuringBuilds · env from .env.example
+
 NEXT (evening ship):
-  1. Smoke UI on Vault 9 · follow docs/TEST_RUNBOOK.md
-  2. Bid + peek from UI or scripts/demo-bid + _buy-peek
-  3. After clock: _finish-v8-settle.ts (works for any active revealed vault)
-  4. Record ≤3 min demo · paste URL into BLITZ_FORM_DRAFT.md
-  5. Submit https://build.magicblock.app/?stage=blitz#submit
+  1. Deploy Vercel · paste site URL into BLITZ_FORM_DRAFT.md
+  2. Smoke UI on Vault 9 · docs/TEST_RUNBOOK.md
+  3. Record ≤3 min demo · submit build.magicblock.app/?stage=blitz#submit
   Optional: ER VRF fill spike
 
 HONEST LIMITS: fill = TEE-local entropy (not ER VRF yet) · Devnet/TEE only

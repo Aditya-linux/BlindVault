@@ -1,13 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { CollectibleCard } from "@/components/CollectibleCard";
 import { useActiveVault } from "@/hooks/useActiveVault";
 import { useMyBid } from "@/hooks/useMyBid";
 import { useMyInventory } from "@/hooks/useItemsOnChain";
 import { housePda, vaultPda } from "@/lib/pdas";
-import { categoryLabel, rarityLabel, shortAddr } from "@/lib/format";
-import { itemImageSrc } from "@/lib/itemArt";
+import { shortAddr } from "@/lib/format";
 import { useTeeAuth } from "@/hooks/useTeeAuth";
 import { MotionNavLink, PageEnter, soft, motion } from "@/components/motion";
 import { Button } from "@/components/ui/button";
@@ -87,40 +86,19 @@ export default function MePage() {
           <p className="mt-5 text-[14px] text-steel-deep">Empty for now.</p>
         )}
         {connected && inventory.data.length > 0 && (
-          <ul className="mt-5 space-y-2">
-            {inventory.data.map((item) => {
-              const src = itemImageSrc(item.index);
-              return (
-                <li
-                  key={item.index}
-                  className="flex items-center gap-3 rounded-2xl border border-line bg-mist px-3 py-2.5"
-                >
-                  <div className="relative size-14 shrink-0 overflow-hidden rounded-xl bg-paper">
-                    {src ? (
-                      <Image
-                        src={src}
-                        alt={item.name}
-                        fill
-                        sizes="56px"
-                        className="object-cover"
-                      />
-                    ) : null}
-                  </div>
-                  <div>
-                    <p className="text-[14px] font-medium">
-                      {item.name}
-                      <span className="ml-2 font-mono text-[11px] text-steel">
-                        #{item.index}
-                      </span>
-                    </p>
-                    <p className="mt-1 font-mono text-[11px] text-steel">
-                      {rarityLabel(item.rarity)} · {categoryLabel(item.category)}{" "}
-                      · {item.value} SCRIP
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
+          <ul className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {inventory.data.map((item) => (
+              <li key={item.index}>
+                <CollectibleCard
+                  index={item.index}
+                  name={item.name}
+                  rarity={item.rarity}
+                  category={item.category}
+                  value={item.value}
+                  compact
+                />
+              </li>
+            ))}
           </ul>
         )}
         <MotionNavLink

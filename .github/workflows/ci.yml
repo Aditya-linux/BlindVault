@@ -13,17 +13,22 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: npm
       - name: Install
         run: |
           set +e
-          npm install --legacy-peer-deps --no-fund --no-audit
+          # Fresh lockfile + force skips EBADPLATFORM on optional native bins
+          # that may still be listed from a Windows-generated lock.
+          npm install --legacy-peer-deps --no-fund --no-audit --force
           code=$?
           if [ $code -ne 0 ]; then
             echo "---- npm debug log ----"
             log=$(ls -1t "$HOME"/.npm/_logs/*debug*.log 2>/dev/null | head -1)
-            if [ -n "$log" ]; then tail -n 120 "$log"; fi
+            if [ -n "$log" ]; then tail -n 160 "$log"; fi
             exit $code
           fi
+      - name: Ensure Linux CSS native binary
+        run: npm install lightningcss-linux-x64-gnu --no-save --legacy-peer-deps --force || true
       - name: Typecheck
         run: npm run typecheck
       - name: Build
