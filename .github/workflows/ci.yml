@@ -13,10 +13,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: npm
-          cache-dependency-path: package-lock.json
+          # Don't cache across platform-specific optional deps flakiness
       - name: Install
-        run: npm ci
+        run: npm install --legacy-peer-deps
       - name: Typecheck
         run: npm run typecheck
       - name: Lint
@@ -25,7 +24,6 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          # Public Devnet defaults — no secrets required for compile
           NEXT_TELEMETRY_DISABLED: "1"
 
   program:
