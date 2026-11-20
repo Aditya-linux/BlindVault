@@ -1,0 +1,14 @@
+node_modules
+**/node_modules
+.next
+**/.next
+target
+**/target
+.anchor
+test-ledger
+coverage
+.git
+agent-transcripts
+*.log
+programs/**/target
+app/.next
