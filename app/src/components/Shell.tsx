@@ -75,7 +75,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                     onVault && "bg-cardboard/70 text-ink",
                   )}
                 >
-                  Live lot
+                  Lot {vaultId}
                 </MotionNavLink>
               )}
             </nav>

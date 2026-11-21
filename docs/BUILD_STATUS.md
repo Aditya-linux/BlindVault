@@ -26,8 +26,9 @@ LIVE: https://blind-vault-amber.vercel.app
 
 NEXT (4-day locked ship — IN PROGRESS):
   See docs/SHIP_4DAY.md — north star = 3 judge moments
-  Day 1–3 UI DONE: paddle · privacyProbe · live activity · reveal beat · rules
-  LEFT: live 2-wallet stamp · Day 4 E2E video + Blitz submit
+  Day 1–3 + UI polish DONE · README rewritten (honest privacy / limits)
+  NOTE: Vault 10 Revealed+abandoned stuck on foreign peek (buyer must Release peek)
+  LEFT: open next lot after peek close · 2-wallet stamp · demo video + submit
   OUT: VRF · X-ray · quests · themes · leaderboards
 
 HONEST LIMITS: fill = TEE-local entropy (not ER VRF yet) · Devnet/TEE only
