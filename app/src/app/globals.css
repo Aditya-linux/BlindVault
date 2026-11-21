@@ -5,6 +5,7 @@
   --font-ui: "Manrope", ui-sans-serif, sans-serif;
   --font-stamp: "Manrope", ui-sans-serif, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-pixel: "VT323", "IBM Plex Mono", ui-monospace, monospace;
 
   /* Natural stone + charcoal (Apple quiet) */
   --color-ink: #1d1d1f;
@@ -57,6 +58,11 @@
     font-family: var(--font-mono);
     letter-spacing: 0;
   }
+  .font-pixel {
+    font-family: var(--font-pixel);
+    letter-spacing: 0.04em;
+    font-weight: 400;
+  }
   :focus-visible {
     outline: 2px solid color-mix(in oklab, var(--color-accent) 55%, transparent);
     outline-offset: 3px;
@@ -68,6 +74,86 @@
 
 .shell-bg {
   position: relative;
+}
+
+/* —— Landing pixel / game stage —— */
+.landing-pixel-grid {
+  background-image:
+    linear-gradient(rgba(29, 29, 31, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(29, 29, 31, 0.06) 1px, transparent 1px);
+  background-size: 12px 12px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 45%, #000 20%, transparent 75%);
+}
+
+.pixel-stage__sky {
+  background:
+    linear-gradient(180deg, #1a2420 0%, #2f4a3c 42%, #c9c2b4 78%, #e7e2d8 100%);
+  box-shadow: 4px 4px 0 rgb(29 29 31 / 0.18);
+  image-rendering: pixelated;
+}
+
+.pixel-stage__star {
+  position: absolute;
+  background: #e6eee8;
+  image-rendering: pixelated;
+}
+
+.pixel-stage__shadow {
+  background: rgb(29 29 31 / 0.35);
+  filter: blur(2px);
+}
+
+.pixel-stage__scan {
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgb(29 29 31 / 0.04) 2px,
+    rgb(29 29 31 / 0.04) 4px
+  );
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.pixel-btn {
+  border-radius: 4px !important;
+  box-shadow: 3px 3px 0 rgb(29 29 31 / 0.85);
+  letter-spacing: -0.01em;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    opacity 120ms ease !important;
+}
+.pixel-btn:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 rgb(29 29 31 / 0.85);
+  opacity: 1;
+}
+.pixel-btn:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 rgb(29 29 31 / 0.85);
+}
+
+.pixel-btn-paper {
+  border-radius: 4px !important;
+  box-shadow: 3px 3px 0 rgb(29 29 31 / 0.2);
+  border-width: 2px !important;
+}
+.pixel-btn-paper:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 rgb(29 29 31 / 0.2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pixel-btn,
+  .pixel-btn-paper {
+    transition: none !important;
+  }
+  .pixel-btn:hover,
+  .pixel-btn-paper:hover,
+  .pixel-btn:active {
+    transform: none;
+  }
 }
 
 .bv-glass {
