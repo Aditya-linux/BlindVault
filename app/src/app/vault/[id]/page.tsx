@@ -92,7 +92,7 @@ export default function LiveVaultPage() {
 
       <header className="mb-8 flex flex-wrap items-end justify-between gap-6">
         <div>
-          <p className="text-[13px] font-medium text-steel-deep">Live lot</p>
+          <p className="text-[13px] font-medium text-steel-deep">Live arena</p>
           <h1 className="mt-1 font-display text-4xl tracking-[-0.03em] text-ink sm:text-5xl">
             Lot {params.id}
           </h1>
@@ -102,7 +102,10 @@ export default function LiveVaultPage() {
               {vaultQ.data ? sizeLabel(vaultQ.data.size) : "—"}
             </span>
             <span className="bv-chip">
-              {vaultQ.data?.bidCount ?? 0} sealed
+              {vaultQ.data?.bidCount ?? 0} sealed bids
+            </span>
+            <span className="bv-chip">
+              {vaultQ.data?.peeksSold ?? 0} peeks
             </span>
             {vaultQ.isError && (
               <span className="bv-chip text-stamp-red">
@@ -110,6 +113,11 @@ export default function LiveVaultPage() {
               </span>
             )}
           </div>
+          {pastDeadline && vaultQ.data?.status === "Open" && (
+            <p className="mt-3 text-[13px] font-medium text-stamp-red-deep">
+              Clock hit zero — bidding closed. Waiting for reveal…
+            </p>
+          )}
         </div>
         <Countdown deadlineTs={vaultQ.data?.deadlineTs ?? 0} />
       </header>
@@ -177,21 +185,42 @@ export default function LiveVaultPage() {
             </ul>
           </article>
 
-          <article className="bv-card flex items-center justify-between gap-4 p-5">
-            <div>
-              <p className="text-[13px] font-medium text-steel-deep">
-                Vault contents
-              </p>
-              <p className="mt-1 text-[15px] text-ink">
-                {vaultQ.data?.itemCount ?? "—"} items · private until reveal
-              </p>
+          <article className="bv-card p-5">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[13px] font-medium text-steel-deep">Activity</p>
+              <MotionNavLink
+                href={`/vault/${params.id}/proof`}
+                className="text-[12px] font-medium text-accent"
+              >
+                Evidence
+              </MotionNavLink>
             </div>
-            <MotionNavLink
-              href={`/vault/${params.id}/proof`}
-              className="text-[13px] font-medium text-accent"
-            >
-              Evidence
-            </MotionNavLink>
+            <ul className="mt-3 space-y-2 text-[13px] text-steel-deep">
+              <li>
+                {vaultQ.data?.itemCount ?? "—"} cards sealed in the vault
+                (identities private)
+              </li>
+              <li>
+                {vaultQ.data?.bidCount ?? 0} sealed bid
+                {(vaultQ.data?.bidCount ?? 0) === 1 ? "" : "s"} · amounts hidden
+              </li>
+              <li>
+                {vaultQ.data?.peeksSold ?? 0} private peek
+                {(vaultQ.data?.peeksSold ?? 0) === 1 ? "" : "s"} purchased
+              </li>
+              <li>
+                {released.length}/4 public hints released
+                {released.length > 0
+                  ? ` · latest: ${hintCopy(released[released.length - 1]!)}`
+                  : ""}
+              </li>
+              {myBid.data && (
+                <li className="text-accent">Your envelope is sealed</li>
+              )}
+            </ul>
+            <p className="mt-3 font-mono text-[10px] text-steel">
+              Feed uses live vault fields only — no bidder ids or amounts.
+            </p>
           </article>
         </div>
 
@@ -201,6 +230,9 @@ export default function LiveVaultPage() {
               Sealed bid
             </h2>
             <p className="mt-1 text-[13px] text-steel-deep">
+              One bid per wallet · amounts stay private until reveal
+            </p>
+            <p className="mt-1 font-mono text-[11px] text-steel">
               {connected ? "Wallet ready" : "Connect a wallet"} ·{" "}
               {tee.token ? "TEE signed" : "guest book needed"}
             </p>

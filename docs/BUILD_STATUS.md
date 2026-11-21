@@ -18,16 +18,17 @@ DONE (live Devnet/TEE):
   - Vault 9 Open BF7jyU8Yk7pSRP5GaQ2KqSkFUTw1DmC6oAgChnBPkDXK
     create 3EsNda… · fill 3yropA… · duration 600s · minBid 10 · items 3
 
-UI: Warehouse/Me use collectible creature cards · landing full-bleed video hero
+UI: Warehouse/Me use collectible creature cards · soft cream landing restored
   Live no longer auto-routes to Reveal (ended banner + CTA instead)
 CI: green on main (web typecheck+build · program tests)
 LIVE: https://blind-vault-amber.vercel.app
   /api/house PASS · /api/items batched fetch · Next 15.1.12
 
-NEXT (evening ship):
-  1. Redeploy UI (hero video + Live fix) · smoke Vault flow
-  2. Record ≤3 min demo · submit build.magicblock.app/?stage=blitz#submit
-  Optional: ER VRF fill spike
+NEXT (4-day locked ship — IN PROGRESS):
+  See docs/SHIP_4DAY.md — north star = 3 judge moments
+  Day 1–3 UI DONE: paddle · privacyProbe · live activity · reveal beat · rules
+  LEFT: live 2-wallet stamp · Day 4 E2E video + Blitz submit
+  OUT: VRF · X-ray · quests · themes · leaderboards
 
 HONEST LIMITS: fill = TEE-local entropy (not ER VRF yet) · Devnet/TEE only
 

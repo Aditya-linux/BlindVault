@@ -2,25 +2,36 @@
 
 import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { motion } from "@/components/motion";
 import { computeHint, hintCopy } from "@/lib/hints";
-import { housePda, vaultPda, contentsPda } from "@/lib/pdas";
+import { housePda, vaultPda, peekPda } from "@/lib/pdas";
 import { useVaultLive } from "@/hooks/useVaultLive";
 import { useHintsLive } from "@/hooks/useHintsLive";
 import { useItemsOnChain } from "@/hooks/useItemsOnChain";
+import { useMyPeek } from "@/hooks/useBuyPeek";
 import { loadEvidence } from "@/lib/evidence";
 import { solanaTxUrl, teeTxUrl, stripToken } from "@/lib/explorer";
-import { teeConnection } from "@/lib/connections";
 import { useTeeAuth } from "@/hooks/useTeeAuth";
-import { shortAddr } from "@/lib/format";
+import { shortAddr, rarityLabel, categoryLabel } from "@/lib/format";
+import {
+  probePeekAccount,
+  probeVaultContents,
+  type AccountProbe,
+  type ProbeOutcome,
+} from "@/lib/privacyProbe";
 import { IconMagnifier, IconStamp } from "@/components/icons";
 import { PageEnter, Stagger, StaggerItem, soft } from "@/components/motion";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/cn";
+
+const STRANGER_PEEK_KEY = "bv-proof-stranger-peek";
 
 export default function ProofPage() {
   const params = useParams<{ id: string }>();
   const id = Number(params.id);
+  const { publicKey } = useWallet();
   const vaultPk = useMemo(
     () =>
       Number.isFinite(id) && id > 0 ? vaultPda(housePda(), id).toBase58() : null,
@@ -30,7 +41,17 @@ export default function ProofPage() {
   const hintsQ = useHintsLive(vaultPk, id);
   const itemsQ = useItemsOnChain();
   const tee = useTeeAuth();
-  const [snoop, setSnoop] = useState<string | null>(null);
+  const myPeek = useMyPeek(vaultPk);
+
+  const [contentsProbe, setContentsProbe] = useState<AccountProbe | null>(null);
+  const [peekProbe, setPeekProbe] = useState<AccountProbe | null>(null);
+  const [busy, setBusy] = useState<"contents" | "my-peek" | "stranger" | null>(
+    null,
+  );
+  const [strangerOwner, setStrangerOwner] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    return sessionStorage.getItem(STRANGER_PEEK_KEY) ?? "";
+  });
 
   const revealed = vaultQ.data?.revealedItems ?? [];
   const sample = revealed
@@ -55,26 +76,54 @@ export default function ProofPage() {
 
   const evidence = loadEvidence(String(params.id));
 
-  const runSnoop = async () => {
-    if (!vaultPk || !tee.token) {
-      setSnoop("Sign the guest book first");
-      return;
+  const runContentsProbe = async () => {
+    if (!vaultPk) return;
+    setBusy("contents");
+    try {
+      const result = await probeVaultContents({
+        vaultPk: new PublicKey(vaultPk),
+        token: tee.token,
+        vaultStatus: vaultQ.data?.status ?? null,
+      });
+      setContentsProbe(result);
+    } finally {
+      setBusy(null);
     }
-    const conn = teeConnection(tee.token);
-    const contents = contentsPda(new PublicKey(vaultPk));
-    const info = await conn.getAccountInfo(contents);
-    if (!info) {
-      setSnoop("ACCESS DENIED (TEE) — no data for VaultContents");
-    } else if (
-      vaultQ.data?.status === "Revealed" ||
-      vaultQ.data?.status === "Closed" ||
-      vaultQ.data?.status === "Settled"
-    ) {
-      setSnoop(`Readable after reveal · ${info.data.length} bytes`);
-    } else {
-      setSnoop(
-        `Unexpected data len=${info.data.length} (should be denied while private)`,
-      );
+  };
+
+  const runMyPeekProbe = async () => {
+    if (!vaultPk || !publicKey) return;
+    setBusy("my-peek");
+    try {
+      // Remember this peek owner so a second wallet can probe the same PDA
+      sessionStorage.setItem(STRANGER_PEEK_KEY, publicKey.toBase58());
+      setStrangerOwner(publicKey.toBase58());
+      const result = await probePeekAccount({
+        vaultPk: new PublicKey(vaultPk),
+        owner: publicKey,
+        token: tee.token,
+        caller: publicKey,
+      });
+      setPeekProbe(result);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const runStrangerPeekProbe = async () => {
+    if (!vaultPk || !strangerOwner) return;
+    setBusy("stranger");
+    try {
+      const owner = new PublicKey(strangerOwner);
+      const result = await probePeekAccount({
+        vaultPk: new PublicKey(vaultPk),
+        owner,
+        token: tee.token,
+        caller: publicKey ?? null,
+      });
+      setPeekProbe(result);
+    } finally {
+      setBusy(null);
     }
   };
 
@@ -90,7 +139,7 @@ export default function ProofPage() {
               Evidence board
             </h1>
             <p className="text-[13px] text-steel-deep">
-              Lot #{params.id} · live signatures only
+              Lot #{params.id} · live signatures + honest TEE reads
             </p>
           </div>
         </div>
@@ -151,30 +200,132 @@ export default function ProofPage() {
           )}
         </div>
 
-        <div className="mt-4 rounded-2xl border border-stamp-red/40 bg-mist p-4">
+        {/* Contents probe */}
+        <div className="mt-4 rounded-2xl border border-line bg-mist p-4">
           <div className="flex items-center gap-2">
-            <IconMagnifier className="size-5 text-stamp-red-deep" />
-            <p className="text-[14px] font-medium text-stamp-red-deep">
-              Snoop test
-            </p>
+            <IconMagnifier className="size-5 text-ink" />
+            <p className="text-[14px] font-medium">VaultContents probe</p>
           </div>
           <p className="mt-1 text-[13px] text-steel-deep">
-            Read VaultContents with your TEE token. Before reveal you should see
-            ACCESS DENIED.
+            Authenticated TEE <code className="text-[12px]">getAccountInfo</code>.
+            Null is{" "}
+            <span className="font-medium text-ink">not</span> labeled ACCESS
+            DENIED alone — we check whether the public Vault still exists.
           </p>
           <Button
             variant="paper"
             size="sm"
             className="mt-3"
-            onClick={() => void runSnoop()}
+            disabled={busy !== null}
+            onClick={() => void runContentsProbe()}
           >
-            Try the magnifying glass
+            {busy === "contents" ? "Probing…" : "Probe VaultContents"}
           </Button>
-          {snoop && (
-            <p className="mt-2 font-mono text-xs text-stamp-red-deep">{snoop}</p>
+          {contentsProbe && <ProbeResult probe={contentsProbe} />}
+        </div>
+
+        {/* Two-wallet peek demo */}
+        <div className="mt-4 rounded-2xl border border-stamp-red/35 bg-mist p-4">
+          <p className="text-[14px] font-medium text-stamp-red-deep">
+            Two-wallet peek proof
+          </p>
+          <p className="mt-1 text-[13px] leading-relaxed text-steel-deep">
+            Wallet A buys a peek on Live, then probes here (authorized). Switch
+            to Wallet B, sign the guest book, and probe the{" "}
+            <span className="font-medium text-ink">same peek PDA</span> —
+            you should get no data (ACL deny / hidden), not a decoded peek.
+          </p>
+
+          {myPeek.data && (
+            <p className="mt-2 font-mono text-[11px] text-steel-deep">
+              Your peek (decoded): slot {myPeek.data.slot} ·{" "}
+              {rarityLabel(myPeek.data.rarity)} ·{" "}
+              {categoryLabel(myPeek.data.category)} — not the exact creature id
+            </p>
           )}
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              variant="paper"
+              size="sm"
+              disabled={!publicKey || busy !== null}
+              onClick={() => void runMyPeekProbe()}
+            >
+              {busy === "my-peek" ? "Probing…" : "A · Probe my peek"}
+            </Button>
+            <Button
+              variant="paper"
+              size="sm"
+              disabled={!strangerOwner || busy !== null}
+              onClick={() => void runStrangerPeekProbe()}
+            >
+              {busy === "stranger"
+                ? "Probing…"
+                : "B · Probe saved peek as this wallet"}
+            </Button>
+          </div>
+
+          {strangerOwner && (
+            <p className="mt-2 font-mono text-[10px] text-steel">
+              Saved peek owner {shortAddr(strangerOwner)}
+              {vaultPk
+                ? ` · PDA ${shortAddr(peekPda(new PublicKey(vaultPk), new PublicKey(strangerOwner)).toBase58())}`
+                : ""}
+            </p>
+          )}
+          {peekProbe && <ProbeResult probe={peekProbe} />}
+          <p className="mt-3 text-[11px] text-steel">
+            Auth tokens never appear in explorer links. Session storage only
+            keeps the peek owner pubkey for the stranger probe.
+          </p>
         </div>
       </section>
     </PageEnter>
   );
+}
+
+function ProbeResult({ probe }: { probe: AccountProbe }) {
+  return (
+    <div className="mt-3 rounded-xl border border-line bg-paper/80 p-3">
+      <p
+        className={cn(
+          "text-[13px] font-medium",
+          toneClass(probe.outcome),
+        )}
+      >
+        {probe.label}
+      </p>
+      <p className="mt-1 text-[12px] leading-relaxed text-steel-deep">
+        {probe.detail}
+      </p>
+      {probe.existenceHint && (
+        <p className="mt-1 font-mono text-[10px] text-steel">
+          {probe.existenceHint}
+        </p>
+      )}
+      <p className="mt-1 font-mono text-[10px] text-steel">
+        account {shortAddr(probe.account)}
+        {probe.bytes !== null ? ` · ${probe.bytes}B` : ""}
+      </p>
+    </div>
+  );
+}
+
+function toneClass(o: ProbeOutcome): string {
+  switch (o) {
+    case "authorized":
+      return "text-accent";
+    case "unauthorized_or_hidden":
+      return "text-stamp-red-deep";
+    case "not_found":
+      return "text-steel-deep";
+    case "rpc_error":
+      return "text-stamp-red-deep";
+    case "needs_auth":
+      return "text-steel-deep";
+    default: {
+      const _exhaustive: never = o;
+      return _exhaustive;
+    }
+  }
 }
