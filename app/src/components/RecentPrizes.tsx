@@ -1,5 +1,6 @@
 "use client";
 
+import { CollectibleCard } from "@/components/CollectibleCard";
 import { MotionNavLink } from "@/components/motion";
 import { useItemsOnChain, resolveRevealedCards } from "@/hooks/useItemsOnChain";
 import { useVaultHistory } from "@/hooks/useVaultHistory";
@@ -13,8 +14,8 @@ export function RecentPrizes({ className }: { className?: string }) {
   const history = useVaultHistory();
   const items = useItemsOnChain();
   const recent = (history.data?.lots ?? [])
-    .filter((l) => l.prizeRevealed)
-    .slice(0, 3);
+    .filter((l) => l.prizeRevealed && l.revealedItems.length > 0)
+    .slice(0, 4);
 
   if (history.isLoading && recent.length === 0) {
     return (
@@ -52,33 +53,46 @@ export function RecentPrizes({ className }: { className?: string }) {
           Full history
         </MotionNavLink>
       </div>
-      <ul className="mt-4 space-y-4">
+      <div className="mt-4 max-h-80 space-y-4 overflow-y-auto overscroll-contain pr-1">
         {recent.map((lot) => {
           const cards = stackInventory(
             resolveRevealedCards(lot.revealedItems, items.data),
           );
-          const names = cards.map((c) =>
-            c.count > 1 ? `${c.name} ×${c.count}` : c.name,
-          );
           return (
-            <li key={lot.vaultId} className="text-[13px] leading-snug">
-              <p className="font-medium text-ink">
+            <div key={lot.vaultId}>
+              <p className="text-[13px] font-medium text-ink">
                 Vault {lot.vaultId}
                 <span className="ml-2 font-mono text-[11px] font-normal text-steel">
                   {lot.winner ? shortAddr(lot.winner) : "no winner"}
                 </span>
               </p>
-              <p className="mt-0.5 text-steel-deep">
-                {names.length > 0
-                  ? `Packed ${names.join(", ")}`
-                  : lot.abandoned
+              {cards.length > 0 ? (
+                <ul className="mt-2 grid grid-cols-3 gap-1.5">
+                  {cards.slice(0, 3).map((item) => (
+                    <li key={`${lot.vaultId}-${item.index}`}>
+                      <CollectibleCard
+                        index={item.index}
+                        name={item.name}
+                        rarity={item.rarity}
+                        category={item.category}
+                        value={item.value}
+                        count={item.count}
+                        compact
+                      />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-0.5 text-[13px] text-steel-deep">
+                  {lot.abandoned
                     ? "No winner — cards returned"
                     : "Prize recorded"}
-              </p>
-            </li>
+                </p>
+              )}
+            </div>
           );
         })}
-      </ul>
+      </div>
     </div>
   );
 }

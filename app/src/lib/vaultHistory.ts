@@ -106,8 +106,17 @@ export async function loadVaultHistory(opts?: {
       winnerPk && !winnerPk.equals(ZERO) && Number(raw.bidCount) > 0,
     );
 
+    const vaultKey = pdas[i]!.toBase58();
+    const isHouseActive = Boolean(activeVault && vaultKey === activeVault);
+    // Stale Open lots (past deadline, not house active) are not "live" —
+    // they clutter History without cards. Only the active lot + in-window Open.
+    const nowSec = Math.floor(Date.now() / 1000);
+    const deadlineTs = Number(raw.deadlineTs);
+    const inBidWindow =
+      status === "Open" && deadlineTs > 0 && deadlineTs > nowSec;
     const live =
-      status === "Open" ||
+      isHouseActive ||
+      inBidWindow ||
       status === "Ended" ||
       status === "Filling" ||
       status === "Delegated" ||
@@ -115,7 +124,7 @@ export async function loadVaultHistory(opts?: {
 
     lots.push({
       vaultId: ids[i]!,
-      vault: pdas[i]!.toBase58(),
+      vault: vaultKey,
       status,
       size: Number(raw.size),
       itemCount,
@@ -126,7 +135,7 @@ export async function loadVaultHistory(opts?: {
       revealedValue: Number(raw.revealedValue),
       abandoned: Boolean(raw.abandoned),
       openTs: Number(raw.openTs),
-      deadlineTs: Number(raw.deadlineTs),
+      deadlineTs,
       prizeRevealed,
       live,
     });
