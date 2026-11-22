@@ -19,7 +19,9 @@
     "init:pool": "tsx scripts/03-init-pool.ts",
     "open-vault": "tsx scripts/open-vault.ts",
     "keeper": "tsx scripts/keeper.ts",
-    "snoop": "tsx scripts/snoop.ts"
+    "snoop": "tsx scripts/snoop.ts",
+    "auto-round": "tsx scripts/auto-round.ts",
+    "auto-round:keep": "tsx scripts/keep-auto-round.ts"
   },
   "devDependencies": {
     "@coral-xyz/anchor": "0.32.1",

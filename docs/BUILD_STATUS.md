@@ -40,7 +40,13 @@ BLITZ DEADLINE: Fri Nov 27, 2026 · 14:00 UTC (21:00 ICT / 19:30 IST)
 
 NEXT:
   - Demo video → Blitz submit before deadline
+  - Human wallet pass on live lot (Sign in → bid → pack on Me)
+  - Redeploy program when ready: close_round skips MagicIntent 0xa0000000 (pool+Closed commit)
   OUT: ER VRF (fill = TEE-local entropy — honest)
+
+OPS (judges):
+  - Keep Open windows: `npm run auto-round:keep` (restarts if child dies)
+  - Leave that terminal open on the operator machine
 
 DONE (wind-up):
   - Keeper never force-abandons lots with bids on a 45s timer (was stealing wins)

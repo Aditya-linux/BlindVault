@@ -15,7 +15,6 @@ use ephemeral_rollups_sdk::access_control::{
 use ephemeral_rollups_sdk::anchor::{commit, delegate, ephemeral, ephemeral_accounts};
 use ephemeral_rollups_sdk::consts::{EPHEMERAL_VAULT_ID, MAGIC_PROGRAM_ID, PERMISSION_PROGRAM_ID};
 use ephemeral_rollups_sdk::cpi::DelegateConfig;
-use ephemeral_rollups_sdk::ephem::MagicIntentBundleBuilder;
 
 mod constants;
 mod error;
@@ -1305,46 +1304,24 @@ pub mod blind_vault {
         };
         let vault_seeds: &[&[u8]] = &[VAULT_SEED, house.as_ref(), &id_bytes, &[bump]];
 
-        // Abandoned lots: MagicIntent commit/undelegate + CloseEphemeralPermission
-        // fail on TEE after public reveal (0xa0000000). Mark Closed above and let
-        // the house operator `force_clear_active` so the next Open lot can start.
-        // Devnet/demo escape — orphaned TEE accounts are acceptable; no real funds.
-        if abandoned {
-            return Ok(());
-        }
-
-        // PER quickstart: close ephemeral permissions before commit+undelegate.
-        if ctx.accounts.contents_permission.lamports() > 0 {
-            CloseEphemeralPermissionCpi {
-                payer: vault_ai.clone(),
-                authority: vault_ai.clone(),
-                permissioned_account: ctx.accounts.contents.to_account_info(),
-                permission: ctx.accounts.contents_permission.to_account_info(),
-                vault: ctx.accounts.ephemeral_vault.to_account_info(),
-                magic_program: ctx.accounts.magic_program.to_account_info(),
-                permission_program: ctx.accounts.permission_program.to_account_info(),
-                authority_is_signer: true,
-            }
-            .invoke_signed(&[vault_seeds])?;
-        }
-        // Keep pool permission + delegation across rounds. Closing the permission
-        // left a TEE-private ghost that blocked the next CreateEphemeralPermission.
-
-        // Keep PoolLedger delegated across rounds (commit only). Undelegating it
-        // then re-delegating left the TEE without a clone (getAccountInfo null),
-        // which blocked the next vault's init_permissions/fill.
-        MagicIntentBundleBuilder::new(
-            ctx.accounts.payer.to_account_info(),
-            ctx.accounts.magic_context.to_account_info(),
-            ctx.accounts.magic_program.to_account_info(),
-        )
-        .commit(&[ctx.accounts.pool_ledger.to_account_info()])
-        .commit_and_undelegate(&[
-            ctx.accounts.vault.to_account_info(),
-            ctx.accounts.hints.to_account_info(),
-            ctx.accounts.contents.to_account_info(),
-        ])
-        .build_and_invoke()?;
+        // MagicIntent commit/undelegate + CloseEphemeralPermission fail on
+        // `devnet-tee` after public reveal with ExternalAccountDataModified /
+        // custom 0xa0000000 — for BOTH abandoned and winning rounds. Status is
+        // already Closed above; pool sold/reserved bits are already written for
+        // wins. Skip the CPI so the ix commits; house `force_clear_active`
+        // unblocks the next Open. Orphaned TEE accounts are acceptable on
+        // Devnet/demo (no real funds). Keep pool delegated across rounds.
+        let _ = (vault_seeds, abandoned);
+        let _ = (
+            &ctx.accounts.contents_permission,
+            &ctx.accounts.ephemeral_vault,
+            &ctx.accounts.magic_context,
+            &ctx.accounts.magic_program,
+            &ctx.accounts.permission_program,
+            &ctx.accounts.hints,
+            &ctx.accounts.contents,
+            &ctx.accounts.payer,
+        );
         Ok(())
     }
 

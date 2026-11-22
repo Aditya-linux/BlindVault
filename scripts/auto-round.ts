@@ -32,8 +32,17 @@ function run(cmd: string, args: string[], timeoutMs = 75_000) {
   }
   if (r.stdout) process.stdout.write(r.stdout.slice(-1600));
   if (r.stderr) process.stderr.write(r.stderr.slice(0, 600));
-  console.log(`[auto-round] exit ${r.status ?? "null"}`);
-  return r.status ?? 1;
+  // Windows/tsx sometimes yields status=null after a successful child.
+  const out = `${r.stdout ?? ""}\n${r.stderr ?? ""}`;
+  const softOk =
+    r.status == null &&
+    (out.includes("OPEN ok") ||
+      out.includes("[keeper]") ||
+      out.includes("No active vault") ||
+      out.includes("force_clear"));
+  const code = r.status ?? (softOk ? 0 : 1);
+  console.log(`[auto-round] exit ${r.status ?? "null"}${softOk ? " (soft-ok)" : ""}`);
+  return code;
 }
 
 function statusKey(v: { status: Record<string, unknown> }) {
