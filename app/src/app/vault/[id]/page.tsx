@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { sizeLabel, shortAddr } from "@/lib/format";
 import { housePda, vaultPda } from "@/lib/pdas";
@@ -33,6 +33,7 @@ import { useStableNextLotEta } from "@/hooks/useStableNextLotEta";
 
 export default function LiveVaultPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const id = Number(params.id);
   const house = useMemo(() => housePda(), []);
   const vaultPk = useMemo(
@@ -52,6 +53,13 @@ export default function LiveVaultPage() {
   useHintPublisher(vaultQ.data);
   const closer = useLotCloser(vaultQ.data);
   const refund = useRefundBid(vaultQ.data);
+
+  // After claim succeeds, open the reveal / pack screen.
+  useEffect(() => {
+    if (closer.completedVaultId != null && closer.completedVaultId === id) {
+      router.push(`/vault/${id}/reveal`);
+    }
+  }, [closer.completedVaultId, id, router]);
 
   const houseActivePk = active.data?.activeVault?.toBase58() ?? null;
   const liveLotId =
@@ -175,20 +183,22 @@ export default function LiveVaultPage() {
 
       {priority === "claim" && (
         <div className="flex flex-wrap items-end justify-between gap-4 border-b border-accent/30 pb-6">
-          <div className="max-w-md">
+          <div className="max-w-lg">
             <p className="font-display text-2xl tracking-[-0.03em] text-ink">
-              {closer.canEnd
-                ? "Claim your pack"
-                : closer.canReveal
-                  ? "Reveal the pack"
-                  : "Save your pack"}
+              {closer.busy
+                ? "Almost there"
+                : closer.canEnd
+                  ? "Claim your pack"
+                  : closer.canReveal
+                    ? "Reveal the pack"
+                    : "Save your pack"}
             </p>
             <p className="mt-1 text-[14px] text-steel-deep">
-              One tap closes the sealed bid and unlocks Me → Packs you won.
+              {closer.busy
+                ? closer.phase ??
+                  "Approve each Phantom popup. You’ll see the cards next."
+                : "Tap once — approve in Phantom when asked. Then we open what you won."}
             </p>
-            {closer.phase && !closer.error && (
-              <p className="mt-2 text-[13px] text-accent">{closer.phase}</p>
-            )}
             {closer.error && (
               <p
                 role="alert"
@@ -205,12 +215,10 @@ export default function LiveVaultPage() {
               disabled={closer.busy}
             >
               {closer.busy
-                ? closer.phase ?? "Working…"
-                : closer.canEnd
-                  ? "Claim my pack"
-                  : closer.canReveal
-                    ? "Reveal pack"
-                    : "Save to Me"}
+                ? "Waiting on Phantom…"
+                : closer.error
+                  ? "Try claim again"
+                  : "Claim my pack"}
             </Button>
             <MotionNavLink
               href={`/vault/${params.id}/reveal`}

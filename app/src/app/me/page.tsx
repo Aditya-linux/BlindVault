@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { CollectibleCard } from "@/components/CollectibleCard";
 import { WalletButton } from "@/components/WalletButton";
@@ -28,6 +29,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 
 export default function MePage() {
+  const router = useRouter();
   const { publicKey, connected } = useWallet();
   const owner = publicKey?.toBase58();
   const tee = useTeeAuth();
@@ -50,6 +52,16 @@ export default function MePage() {
   const myBid = useMyBid(vaultPk);
   const vaultLive = useVaultLive(vaultPk, vaultId);
   const closer = useLotCloser(vaultLive.data);
+
+  useEffect(() => {
+    if (
+      closer.completedVaultId != null &&
+      vaultId != null &&
+      closer.completedVaultId === vaultId
+    ) {
+      router.push(`/vault/${vaultId}/reveal`);
+    }
+  }, [closer.completedVaultId, vaultId, router]);
 
   const collection = useMemo(() => {
     const byIndex = new Map<
@@ -205,11 +217,13 @@ export default function MePage() {
             onClick={() => void closer.run()}
           >
             {closer.busy
-              ? closer.phase ?? "Working…"
-              : "Claim my pack"}
+              ? "Waiting on Phantom…"
+              : closer.error
+                ? "Try claim again"
+                : "Claim my pack"}
           </Button>
-          {closer.phase && !closer.error && (
-            <p className="text-[13px] text-accent">{closer.phase}</p>
+          {closer.busy && closer.phase && (
+            <p className="text-[13px] text-steel-deep">{closer.phase}</p>
           )}
           {closer.error && (
             <p
