@@ -136,13 +136,18 @@ async function main() {
         // short timer — that stole winners. Wait for bidder End lot / BIDDERS,
         // or operator's own bid PDA when they are the only bidder.
         const emptyGrace = 45;
-        const bidWaitSecs = Number(process.env.BID_END_WAIT_SECS ?? 1800);
+        // After this, unblock the house even if the human bidder never taps
+        // Claim — otherwise Open windows freeze forever (Blitz demo).
+        // Default 3 min; set BID_END_WAIT_SECS / FORCE_ABANDON_BIDS to override.
+        const bidWaitSecs = Number(process.env.BID_END_WAIT_SECS ?? 180);
         const pastEmptyGrace = now >= Number(vault.deadlineTs) + emptyGrace;
         const pastBidWait = now >= Number(vault.deadlineTs) + bidWaitSecs;
         const forceAbandon =
           process.env.FORCE_ABANDON === "1" ||
           (bidCount === 0 && pastEmptyGrace) ||
-          (bidCount > 0 && pastBidWait && process.env.FORCE_ABANDON_BIDS === "1");
+          (bidCount > 0 &&
+            pastBidWait &&
+            process.env.FORCE_ABANDON_BIDS !== "0");
 
         const envBidders = (process.env.BIDDERS ?? "")
           .split(",")

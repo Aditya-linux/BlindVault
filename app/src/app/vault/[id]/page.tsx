@@ -228,6 +228,35 @@ export default function LiveVaultPage() {
         />
       )}
 
+      {pastDeadline &&
+        vaultQ.data?.status === "Open" &&
+        (vaultQ.data?.bidCount ?? 0) > 0 &&
+        !closer.needsAction && (
+          <div className="bv-card mb-6 flex flex-col gap-3 border-stamp-red/40 bg-[#2a1218]/85 p-5">
+            <p className="text-[16px] font-medium text-ink">
+              Bidding ended — this lot is waiting on a sealed bidder
+            </p>
+            <p className="text-[14px] text-steel-deep">
+              Connect the wallet that placed the bid, tap Sign in, then Claim my
+              pack. Until then the next auction can’t open (house will clear
+              stuck lots after a few minutes).
+            </p>
+            {!connected ? (
+              <p className="text-[13px] text-stamp-red-deep">
+                Connect wallet (top right) first.
+              </p>
+            ) : !tee.token ? (
+              <Button
+                variant="paper"
+                className="w-fit"
+                onClick={() => void tee.signGuestBook()}
+              >
+                Sign in to claim
+              </Button>
+            ) : null}
+          </div>
+        )}
+
       {closer.needsAction && (
         <div className="bv-card mb-6 flex flex-col gap-3 border-accent/45 bg-[color-mix(in_oklab,var(--color-accent)_14%,transparent)] p-5">
           <p className="text-[16px] font-medium text-ink">

@@ -52,15 +52,21 @@ export function useLotCloser(vault: DecodedVault | null | undefined) {
     Boolean(vault?.deadlineTs) &&
     vault!.deadlineTs > 0 &&
     nowTs >= vault!.deadlineTs;
+  // Allow Claim when wallet is connected past deadline — don't wait on myBid
+  // fetch (TEE ACL can lag). Sole-bidder lots use this wallet's bid PDA.
   const canEnd =
-    vault?.status === "Open" && pastDeadline && Boolean(myBid.data);
+    vault?.status === "Open" &&
+    pastDeadline &&
+    Boolean(publicKey) &&
+    (Boolean(myBid.data) || (vault.bidCount ?? 0) >= 1);
   const canReveal =
     (vault?.status === "Ended" || vault?.status === "Abandoned") &&
-    Boolean(myBid.data);
+    Boolean(publicKey);
   const canSettle =
     vault?.status === "Revealed" &&
     Boolean(publicKey) &&
-    vault.winner === publicKey?.toBase58() &&
+    (vault.winner === publicKey?.toBase58() ||
+      (vault.bidCount === 1 && Boolean(myBid.data))) &&
     !vault.abandoned;
 
   const run = useCallback(async () => {
@@ -89,14 +95,17 @@ export function useLotCloser(vault: DecodedVault | null | undefined) {
       let status = vault.status;
 
       if (status === "Open" && pastDeadline) {
-        if (!myBid.data) {
-          throw new Error(
-            "Only a sealed bidder can end this lot (bids stay private).",
-          );
-        }
         if (vault.bidCount !== 1) {
           throw new Error(
             `This lot has ${vault.bidCount} bids — every bidder must help close, or set BIDDERS for the house crank.`,
+          );
+        }
+        // Confirm this wallet actually has the sealed bid before ending.
+        try {
+          await (program.account as any).bid.fetch(bid);
+        } catch {
+          throw new Error(
+            "No sealed bid found for this wallet on this lot. Connect the wallet that bid, Sign in, then Claim again.",
           );
         }
         setPhase("Closing bidding…");
