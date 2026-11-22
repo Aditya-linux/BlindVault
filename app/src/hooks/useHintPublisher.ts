@@ -11,16 +11,21 @@ import type { DecodedVault } from "@/lib/types";
 import { useTeeAuth } from "./useTeeAuth";
 import { useHintsLive } from "./useHintsLive";
 
-/** Auto-publish due hints from any connected client (keeper is backup). */
+/**
+ * Auto-publish due hints from any connected client that **already** signed
+ * the TEE guest book. Never prompts Phantom — keeper is the backup crank.
+ */
 export function useHintPublisher(vault: DecodedVault | null | undefined) {
   const { publicKey, signTransaction } = useWallet();
-  const { token, ensureToken } = useTeeAuth();
+  const { token } = useTeeAuth();
   const hintsQ = useHintsLive(vault?.publicKey ?? null, vault?.id ?? null);
   const inflight = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     if (!vault || vault.status !== "Open") return;
     if (!publicKey || !signTransaction) return;
+    // No silent guest-book popups from background hint ticks.
+    if (!token) return;
 
     const tick = async () => {
       const hints = hintsQ.data?.hints;
@@ -32,9 +37,7 @@ export function useHintPublisher(vault: DecodedVault | null | undefined) {
         if (inflight.current.has(i)) continue;
         inflight.current.add(i);
         try {
-          const t = token ?? (await ensureToken());
-          if (!t) continue;
-          const conn = teeConnection(t);
+          const conn = teeConnection(token);
           const program = getProgram(conn, {
             publicKey,
             signTransaction: async (tx) => signTransaction(tx),
@@ -68,15 +71,7 @@ export function useHintPublisher(vault: DecodedVault | null | undefined) {
 
     const id = setInterval(() => {
       void tick();
-    }, 1_000);
+    }, 2_000);
     return () => clearInterval(id);
-  }, [
-    vault,
-    publicKey,
-    signTransaction,
-    token,
-    ensureToken,
-    hintsQ.data,
-  ]);
-
+  }, [vault, publicKey, signTransaction, token, hintsQ.data]);
 }

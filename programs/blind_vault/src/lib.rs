@@ -948,6 +948,53 @@ pub mod blind_vault {
         Ok(())
     }
 
+    /// Clear `house.active_vault` so a new lot can open when the prior round is stuck
+    /// mid-settlement on TEE (Devnet/demo escape hatch).
+    pub fn force_clear_active(ctx: Context<ForceClearActive>) -> Result<()> {
+        require_keys_eq!(
+            ctx.accounts.house.authority,
+            ctx.accounts.authority.key(),
+            ErrorCode::Unauthorized
+        );
+        require_keys_eq!(
+            ctx.accounts.house.active_vault,
+            ctx.accounts.vault.key(),
+            ErrorCode::ItemMismatch
+        );
+        ctx.accounts.house.active_vault = Pubkey::default();
+        Ok(())
+    }
+
+    /// House escape hatch after deadline + grace when private bids block `end_auction`.
+    /// Marks the lot abandoned and treats bids/peeks as closed so settlement can finish
+    /// and a new Open lot can start (Devnet faucet SCRIP — not real funds).
+    pub fn force_abandon_stale(ctx: Context<ForceAbandonStale>) -> Result<()> {
+        require_keys_eq!(
+            ctx.accounts.house.authority,
+            ctx.accounts.authority.key(),
+            ErrorCode::Unauthorized
+        );
+        let vault = &mut ctx.accounts.vault;
+        require_keys_eq!(vault.house, ctx.accounts.house.key(), ErrorCode::ItemMismatch);
+        require!(vault.status == VaultStatus::Open, ErrorCode::BadStatus);
+        let now = Clock::get()?.unix_timestamp;
+        // 45s past deadline — bidder End lot / end_auction first; then house escape.
+        const GRACE_SECS: i64 = 45;
+        require!(
+            now >= vault.deadline_ts.saturating_add(GRACE_SECS),
+            ErrorCode::AuctionStillOpen
+        );
+
+        vault.abandoned = true;
+        vault.status = VaultStatus::Abandoned;
+        vault.closed_bid_count = vault.bid_count;
+        vault.closed_peek_count = vault.peeks_sold;
+        vault.highest_bid = 0;
+        vault.winner = Pubkey::default();
+        vault.winner_index = 0;
+        Ok(())
+    }
+
     pub fn reveal_contents(ctx: Context<RevealContents>) -> Result<()> {
         require!(
             ctx.accounts.vault.status == VaultStatus::Ended
@@ -1165,12 +1212,56 @@ pub mod blind_vault {
         Ok(())
     }
 
+    /// House authority closes a foreign peek after reveal.
+    /// Peek ACL lists the vault PDA as AUTHORITY (same pattern as MB-016 bids),
+    /// so the buyer does not need to be online — unblocks abandoned close_round.
+    pub fn close_peek_keeper(ctx: Context<ClosePeekKeeper>) -> Result<()> {
+        require!(
+            ctx.accounts.lot.status == VaultStatus::Revealed,
+            ErrorCode::BadStatus
+        );
+        require_keys_eq!(
+            ctx.accounts.house.authority,
+            ctx.accounts.authority.key(),
+            ErrorCode::Unauthorized
+        );
+        require_keys_eq!(
+            ctx.accounts.lot.house,
+            ctx.accounts.house.key(),
+            ErrorCode::Unauthorized
+        );
+        let id_bytes = ctx.accounts.lot.id.to_le_bytes();
+        let house = ctx.accounts.lot.house;
+        let bump = ctx.accounts.lot.bump;
+        let vault_seeds: &[&[u8]] = &[VAULT_SEED, house.as_ref(), &id_bytes, &[bump]];
+        // Vault PDA is the ACL AUTHORITY member — sign CloseEphemeralPermission with seeds.
+        close_bid_perm(
+            &ctx.accounts.lot.to_account_info(),
+            &ctx.accounts.lot.to_account_info(),
+            &ctx.accounts.peek.to_account_info(),
+            &ctx.accounts.peek_permission.to_account_info(),
+            &ctx.accounts.vault.to_account_info(),
+            &ctx.accounts.magic_program.to_account_info(),
+            &ctx.accounts.permission_program.to_account_info(),
+            true,
+            &[vault_seeds],
+        )?;
+        ctx.accounts.close_ephemeral_peek()?;
+        ctx.accounts.lot.closed_peek_count = ctx
+            .accounts
+            .lot
+            .closed_peek_count
+            .checked_add(1)
+            .ok_or(ErrorCode::MathOverflow)?;
+        Ok(())
+    }
+
     pub fn close_round(ctx: Context<CloseRound>) -> Result<()> {
         // UncheckedAccount for commit targets: typed Account<> writeback after
         // MagicIntent CPI fails with ExternalAccountDataModified (SIMD-0460).
         let vault_ai = ctx.accounts.vault.to_account_info();
         let pool_ai = ctx.accounts.pool_ledger.to_account_info();
-        let (id_bytes, house, bump) = {
+        let (id_bytes, house, bump, abandoned) = {
             let mut data = vault_ai.try_borrow_mut_data()?;
             let mut vault: Vault = Vault::try_deserialize(&mut &data[..])?;
             require!(vault.status == VaultStatus::Revealed, ErrorCode::BadStatus);
@@ -1210,9 +1301,17 @@ pub mod blind_vault {
             vault.status = VaultStatus::Closed;
             let mut out: &mut [u8] = &mut data[..];
             vault.try_serialize(&mut out)?;
-            (id_bytes, house, bump)
+            (id_bytes, house, bump, abandoned)
         };
         let vault_seeds: &[&[u8]] = &[VAULT_SEED, house.as_ref(), &id_bytes, &[bump]];
+
+        // Abandoned lots: MagicIntent commit/undelegate + CloseEphemeralPermission
+        // fail on TEE after public reveal (0xa0000000). Mark Closed above and let
+        // the house operator `force_clear_active` so the next Open lot can start.
+        // Devnet/demo escape — orphaned TEE accounts are acceptable; no real funds.
+        if abandoned {
+            return Ok(());
+        }
 
         // PER quickstart: close ephemeral permissions before commit+undelegate.
         if ctx.accounts.contents_permission.lamports() > 0 {
@@ -1814,6 +1913,23 @@ pub struct EndAuction<'info> {
 }
 
 #[derive(Accounts)]
+pub struct ForceAbandonStale<'info> {
+    pub authority: Signer<'info>,
+    pub house: Account<'info, House>,
+    #[account(mut)]
+    pub vault: Account<'info, Vault>,
+}
+
+#[derive(Accounts)]
+pub struct ForceClearActive<'info> {
+    pub authority: Signer<'info>,
+    #[account(mut, seeds = [HOUSE_SEED], bump = house.bump)]
+    pub house: Account<'info, House>,
+    /// CHECK: must match house.active_vault — may still be delegated on TEE
+    pub vault: UncheckedAccount<'info>,
+}
+
+#[derive(Accounts)]
 pub struct RevealContents<'info> {
     #[account(mut)]
     pub vault: Account<'info, Vault>,
@@ -1917,6 +2033,37 @@ pub struct ClosePeek<'info> {
         bump = lot.bump
     )]
     pub lot: Account<'info, Vault>,
+    /// CHECK: peek
+    #[account(
+        mut,
+        eph,
+        seeds = [PEEK_SEED, lot.key().as_ref(), buyer.key().as_ref()],
+        bump
+    )]
+    pub peek: UncheckedAccount<'info>,
+    /// CHECK: permission
+    #[account(mut)]
+    pub peek_permission: UncheckedAccount<'info>,
+    /// CHECK: permission program
+    #[account(address = PERMISSION_PROGRAM_ID)]
+    pub permission_program: UncheckedAccount<'info>,
+}
+
+#[ephemeral_accounts]
+#[derive(Accounts)]
+pub struct ClosePeekKeeper<'info> {
+    pub authority: Signer<'info>,
+    #[account(seeds = [HOUSE_SEED], bump = house.bump)]
+    pub house: Account<'info, House>,
+    #[account(
+        mut,
+        sponsor,
+        seeds = [VAULT_SEED, lot.house.as_ref(), &lot.id.to_le_bytes()],
+        bump = lot.bump
+    )]
+    pub lot: Account<'info, Vault>,
+    /// CHECK: peek buyer pubkey (does not sign — vault is ACL AUTHORITY).
+    pub buyer: UncheckedAccount<'info>,
     /// CHECK: peek
     #[account(
         mut,

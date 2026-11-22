@@ -107,7 +107,7 @@ export function useMyPeek(vaultPk: string | null) {
  * 2) TEE: create Peek PDA + buyer-only ACL
  */
 export function useBuyPeek(vault: DecodedVault | null | undefined) {
-  const { publicKey, signTransaction } = useWallet();
+  const { publicKey, signTransaction, connected } = useWallet();
   const { ensureToken } = useTeeAuth();
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
@@ -120,8 +120,8 @@ export function useBuyPeek(vault: DecodedVault | null | undefined) {
       setError("No active vault");
       return null;
     }
-    if (!publicKey || !signTransaction) {
-      setError("Connect a wallet first");
+    if (!connected || !publicKey || !signTransaction) {
+      setError("Connect Phantom or Solflare on Devnet first, then try again.");
       return null;
     }
     if (vault.status !== "Open") {
@@ -202,7 +202,7 @@ export function useBuyPeek(vault: DecodedVault | null | undefined) {
     } finally {
       setBusy(false);
     }
-  }, [vault, publicKey, signTransaction, ensureToken, qc]);
+  }, [vault, connected, publicKey, signTransaction, ensureToken, qc]);
 
   return { buyPeek, busy, error, lastSig, feeSig };
 }

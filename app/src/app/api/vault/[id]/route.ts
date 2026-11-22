@@ -4,7 +4,7 @@ import { AnchorProvider, Idl, Program } from "@coral-xyz/anchor";
 import idl from "@/idl/blind_vault.json";
 import { PROGRAM_ID, SOLANA_RPC, TEE_RPC } from "@/lib/connections";
 import { housePda, hintsPda, vaultPda } from "@/lib/pdas";
-import { vaultStatusName } from "@/lib/types";
+import { revealedItemsVisible, vaultStatusName } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -93,13 +93,7 @@ export async function GET(
         winner: (vaultRaw.winner as PublicKey).toBase58(),
         revealedItems: (() => {
           const status = vaultStatusName(vaultRaw.status);
-          if (
-            status !== "Revealed" &&
-            status !== "Closed" &&
-            status !== "Settled"
-          ) {
-            return [] as number[];
-          }
+          if (!revealedItemsVisible(status)) return [] as number[];
           return (vaultRaw.revealedItems as (number | bigint)[])
             .map(Number)
             .slice(0, Number(vaultRaw.itemCount));

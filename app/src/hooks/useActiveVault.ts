@@ -53,8 +53,9 @@ export function useActiveVault() {
         durationSecs: body.durationSecs ?? [],
       };
     },
-    refetchInterval: 5_000,
+    // Faster poll so “Enter lot” appears quickly after settle → new Open.
+    refetchInterval: 2_500,
     retry: 2,
-    staleTime: 2_000,
+    staleTime: 1_000,
   });
 }

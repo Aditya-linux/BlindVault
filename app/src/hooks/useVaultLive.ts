@@ -5,10 +5,15 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PublicKey } from "@solana/web3.js";
 import { teeConnection } from "@/lib/connections";
 import { getReadonlyProgram } from "@/lib/program";
-import { vaultStatusName, type DecodedVault } from "@/lib/types";
+import {
+  revealedItemsVisible,
+  vaultStatusName,
+  type DecodedVault,
+} from "@/lib/types";
 import { useTeeAuth } from "./useTeeAuth";
 
 function decodeVault(publicKey: PublicKey, raw: any): DecodedVault {
+  const status = vaultStatusName(raw.status);
   return {
     publicKey: publicKey.toBase58(),
     house: (raw.house as PublicKey).toBase58(),
@@ -21,24 +26,16 @@ function decodeVault(publicKey: PublicKey, raw: any): DecodedVault {
     openTs: Number(raw.openTs),
     deadlineTs: Number(raw.deadlineTs),
     hintTimes: (raw.hintTimes as (bigint | number)[]).map(Number),
-    status: vaultStatusName(raw.status),
+    status,
     bidCount: Number(raw.bidCount),
     peeksSold: Number(raw.peeksSold),
     highestBid: Number(raw.highestBid),
     winner: (raw.winner as PublicKey).toBase58(),
-    revealedItems: (() => {
-      const status = vaultStatusName(raw.status);
-      if (
-        status !== "Revealed" &&
-        status !== "Closed" &&
-        status !== "Settled"
-      ) {
-        return [];
-      }
-      return (raw.revealedItems as (number | bigint)[])
-        .map(Number)
-        .slice(0, Number(raw.itemCount));
-    })(),
+    revealedItems: revealedItemsVisible(status)
+      ? (raw.revealedItems as (number | bigint)[])
+          .map(Number)
+          .slice(0, Number(raw.itemCount))
+      : [],
     revealedValue: Number(raw.revealedValue),
     escrow: (raw.escrow as PublicKey).toBase58(),
     abandoned: Boolean(raw.abandoned),

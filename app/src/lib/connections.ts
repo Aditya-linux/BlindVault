@@ -24,12 +24,32 @@ export const PROGRAM_ID = env(
   "E9UmQYi4gTHyyQ3SK5B4UCpewBnUBFrEc5NqkkAjr42h",
 );
 
-export const solana = new Connection(SOLANA_RPC, "confirmed");
+/** Lazy so Next build / page-data collection doesn’t open RPC sockets at import. */
+let _solana: Connection | null = null;
+let _teePublic: Connection | null = null;
+
+export const solana: Connection = new Proxy({} as Connection, {
+  get(_t, prop, receiver) {
+    if (!_solana) {
+      _solana = new Connection(SOLANA_RPC, "confirmed");
+    }
+    const value = Reflect.get(_solana, prop, receiver);
+    return typeof value === "function" ? value.bind(_solana) : value;
+  },
+});
 
 /** Public TEE RPC — enough for non-permissioned accounts (Vault, Hints). */
-export const teePublic = new Connection(TEE_RPC, {
-  commitment: "confirmed",
-  wsEndpoint: TEE_WS,
+export const teePublic: Connection = new Proxy({} as Connection, {
+  get(_t, prop, receiver) {
+    if (!_teePublic) {
+      _teePublic = new Connection(TEE_RPC, {
+        commitment: "confirmed",
+        wsEndpoint: TEE_WS,
+      });
+    }
+    const value = Reflect.get(_teePublic, prop, receiver);
+    return typeof value === "function" ? value.bind(_teePublic) : value;
+  },
 });
 
 export function teeConnection(token: string) {

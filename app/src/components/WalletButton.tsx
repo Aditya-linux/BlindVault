@@ -8,7 +8,7 @@ const WalletMultiButton = dynamic(
   {
     ssr: false,
     loading: () => (
-      <span className="inline-flex h-9 items-center rounded-full bg-ink px-4 text-[13px] font-medium text-paper opacity-70">
+      <span className="inline-flex h-9 items-center rounded-full bg-accent px-4 text-[13px] font-semibold text-[#041018] opacity-70">
         Wallet…
       </span>
     ),

@@ -19,45 +19,45 @@ export default function WarehousePage() {
       : null;
 
   return (
-    <PageEnter className="flex flex-col gap-8">
+    <PageEnter className="bv-stack">
       <header className="max-w-2xl">
-        <h1 className="font-display text-4xl tracking-[-0.03em] sm:text-5xl">
+        <h1 className="font-display text-[clamp(2.25rem,6vw,3.25rem)] tracking-[-0.03em]">
           Warehouse
         </h1>
-        <p className="mt-3 text-[16px] leading-relaxed text-steel-deep">
-          Creature cards that can be sealed into private vaults. Pull odds below
-          — rarer tiers shimmer harder. No wallet needed to browse.
+        <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-steel-deep sm:text-[16px]">
+          All creature cards that can go into sealed auctions. Rarer tiers glow
+          more. No wallet needed to look around.
         </p>
         <p className="mt-4 font-mono text-[11px] text-steel">
           {onChain.isLoading
-            ? "Loading Item accounts…"
+            ? "Loading cards…"
             : onChain.isError
-              ? `Chain read failed · ${onChain.error instanceof Error ? onChain.error.message.slice(0, 80) : "retry"}`
-              : `${rows.length} cards · ${soldCount} sold · live`}
+              ? `Couldn’t load cards · ${onChain.error instanceof Error ? onChain.error.message.slice(0, 80) : "retry"}`
+              : `${rows.length} cards · ${soldCount} already won`}
         </p>
         <div className="mt-5 flex flex-wrap gap-2">
           <MotionNavLink
             href="/paddle"
             className={cn(buttonVariants({ size: "sm" }))}
           >
-            Get paddle
+            Set up to bid
           </MotionNavLink>
           {vaultId && vaultId > 0 && (
             <MotionNavLink
               href={`/vault/${vaultId}`}
               className={cn(buttonVariants({ variant: "paper", size: "sm" }))}
             >
-              Active lot {vaultId}
+              Live lot {vaultId}
             </MotionNavLink>
           )}
         </div>
       </header>
 
       <section
-        aria-label="Pull odds"
+        aria-label="Rarity odds"
         className="odds-board"
       >
-        <p className="odds-board__title">Pull odds</p>
+        <p className="odds-board__title">How rare?</p>
         <ul className="odds-board__list">
           {RARITY_TIERS.map((tier) => (
             <li key={tier.id} className={`odds-board__item rarity-${tier.id}`}>
@@ -69,12 +69,12 @@ export default function WarehousePage() {
       </section>
 
       {!onChain.isLoading && rows.length === 0 && !onChain.isError && (
-        <p className="text-[14px] text-steel-deep">No items seeded on house.</p>
+        <p className="text-[14px] text-steel-deep">No cards listed yet.</p>
       )}
 
-      <Stagger className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      <Stagger className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 lg:gap-5">
         {rows.map((item) => (
-          <StaggerItem key={item.index}>
+          <StaggerItem key={item.index} className="overflow-visible">
             <CollectibleCard
               index={item.index}
               name={item.name}

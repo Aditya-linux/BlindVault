@@ -182,7 +182,7 @@ async function main() {
     console.log("delegate_pool_ledger skipped");
   }
 
-  // 4) TEE: permissions + fill
+  // 4) TEE: wait for clones, then permissions + fill
   const { token } = await getAuthToken(
     TEE_RPC,
     wallet.publicKey,
@@ -194,19 +194,76 @@ async function main() {
     new AnchorProvider(teeConn, new Wallet(wallet), { commitment: "confirmed" }),
   );
 
-  const contentsPermSig = await (teeProgram.methods as any)
-    .initContentsPermission()
-    .accounts({
-      vault,
-      contents,
-      contentsPermission: permissionPdaFromAccount(contents),
-      ephemeralVault: EPHEMERAL_VAULT_ID,
-      magicProgram: MAGIC_PROGRAM_ID,
-      permissionProgram: PERMISSION_PROGRAM_ID,
-      systemProgram: SystemProgram.programId,
-    })
-    .rpc();
-  console.log("init_contents_permission", contentsPermSig);
+  // Delegation clones are eventually consistent — never init permission on a
+  // missing contents account (that left Open vaults with MISSING contents).
+  for (let i = 0; i < 30; i++) {
+    const [vInfo, cInfo, hInfo] = await Promise.all([
+      teeConn.getAccountInfo(vault),
+      teeConn.getAccountInfo(contents),
+      teeConn.getAccountInfo(hints),
+    ]);
+    if (vInfo && cInfo && hInfo) {
+      console.log("tee clones ready after", i * 2, "s");
+      break;
+    }
+    if (i === 0) console.log("waiting for TEE clones (vault/hints/contents)…");
+    if (i === 29) {
+      throw new Error(
+        `TEE clone timeout — vault=${!!vInfo} hints=${!!hInfo} contents=${!!cInfo}`,
+      );
+    }
+    await new Promise((r) => setTimeout(r, 2_000));
+  }
+
+  // Skip permission/fill if already Open (resume after a partial success).
+  try {
+    const existing = await (teeProgram.account as any).vault.fetch(vault);
+    if (statusName(existing.status) === "open") {
+      const cInfo = await teeConn.getAccountInfo(contents);
+      if (cInfo) {
+        console.log("OPEN ok (already)", {
+          vault: vault.toBase58(),
+          status: "open",
+          deadlineTs: Number(existing.deadlineTs),
+          itemCount: Number(existing.itemCount),
+          minBid: Number(existing.minBid) / 1_000_000,
+        });
+        return;
+      }
+      throw new Error(
+        "Vault Open on TEE but contents missing — clear active and open next id",
+      );
+    }
+  } catch (e) {
+    if (String(e).includes("contents missing")) throw e;
+  }
+
+  let contentsPermSig: string | null = null;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      contentsPermSig = await (teeProgram.methods as any)
+        .initContentsPermission()
+        .accounts({
+          vault,
+          contents,
+          contentsPermission: permissionPdaFromAccount(contents),
+          ephemeralVault: EPHEMERAL_VAULT_ID,
+          magicProgram: MAGIC_PROGRAM_ID,
+          permissionProgram: PERMISSION_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+      console.log("init_contents_permission", contentsPermSig);
+      break;
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.log(`init_contents_permission retry ${attempt + 1}:`, msg.slice(0, 120));
+      await new Promise((r) => setTimeout(r, 3_000));
+    }
+  }
+  if (!contentsPermSig) {
+    throw new Error("init_contents_permission failed after retries");
+  }
 
   // Pool permission is kept across rounds (close_round does not close it).
   try {
@@ -243,6 +300,8 @@ async function main() {
     itemCount: Number(opened.itemCount),
     minBid: Number(opened.minBid) / 1_000_000,
   });
+  // TEE Connection / WS keeps the event loop alive — exit so auto-round continues.
+  process.exit(0);
 }
 
 main().catch((e) => {

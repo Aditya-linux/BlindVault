@@ -38,7 +38,7 @@ export async function fetchTeeToken(
   }
 
   const message = new TextEncoder().encode(challenge);
-  const signature = await signChallengeUtf8(message, signMessage);
+  const signature = await signChallengeUtf8(message, signMessage, pubkey);
   const signatureString = bs58.encode(signature);
 
   const authResponse = await fetch(`${TEE_RPC}/auth/login`, {
@@ -66,12 +66,13 @@ export async function fetchTeeToken(
 
   const token = authJson.token;
   const expiresAt = authJson.expiresAt ?? Date.now() + SESSION_DURATION;
-  useSession.getState().setTee({ token, expiresAt });
+  const pubkeyStr = pubkey.toBase58();
+  useSession.getState().setTee({ token, expiresAt, pubkey: pubkeyStr });
   try {
     const payload: StoredTee = {
       token,
       expiresAt,
-      pubkey: pubkey.toBase58(),
+      pubkey: pubkeyStr,
     };
     sessionStorage.setItem(TEE_STORAGE_KEY, JSON.stringify(payload));
   } catch {
@@ -80,18 +81,49 @@ export async function fetchTeeToken(
   return token;
 }
 
+/** Peek stored guest-book without prompting the wallet. */
+export function peekStoredTeeToken(pubkey: PublicKey): string | null {
+  try {
+    const raw = sessionStorage.getItem(TEE_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as StoredTee;
+    if (parsed.pubkey !== pubkey.toBase58()) return null;
+    if (!parsed.token || !parsed.expiresAt) return null;
+    if (Date.now() > parsed.expiresAt - 60_000) return null;
+    return parsed.token;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Prefer Phantom’s utf8 signMessage only when that provider’s active key
+ * matches the connected adapter pubkey — never sign with a different wallet
+ * just because Phantom is injected alongside Solflare.
+ */
 async function signChallengeUtf8(
   message: Uint8Array,
   adapterSign: SignMessage,
+  expectedPubkey: PublicKey,
 ): Promise<Uint8Array> {
+  const expected = expectedPubkey.toBase58();
+
   if (typeof window !== "undefined") {
     const phantom = (
       window as unknown as {
-        phantom?: { solana?: { signMessage?: Function } };
+        phantom?: {
+          solana?: {
+            signMessage?: Function;
+            publicKey?: { toString(): string };
+          };
+        };
       }
     ).phantom?.solana;
 
-    if (typeof phantom?.signMessage === "function") {
+    if (
+      typeof phantom?.signMessage === "function" &&
+      providerPubkeyMatches(phantom.publicKey, expected)
+    ) {
       try {
         const result = await phantom.signMessage(message, "utf8");
         const sig = unwrapSignature(result);
@@ -102,9 +134,17 @@ async function signChallengeUtf8(
     }
 
     const solana = (
-      window as unknown as { solana?: { signMessage?: Function } }
+      window as unknown as {
+        solana?: {
+          signMessage?: Function;
+          publicKey?: { toString(): string };
+        };
+      }
     ).solana;
-    if (typeof solana?.signMessage === "function") {
+    if (
+      typeof solana?.signMessage === "function" &&
+      providerPubkeyMatches(solana.publicKey, expected)
+    ) {
       try {
         const result = await solana.signMessage(message, "utf8");
         const sig = unwrapSignature(result);
@@ -116,6 +156,18 @@ async function signChallengeUtf8(
   }
 
   return adapterSign(message);
+}
+
+function providerPubkeyMatches(
+  providerKey: { toString(): string } | undefined,
+  expected: string,
+): boolean {
+  if (!providerKey) return false;
+  try {
+    return providerKey.toString() === expected;
+  } catch {
+    return false;
+  }
 }
 
 function unwrapSignature(result: unknown): Uint8Array | null {
@@ -136,12 +188,21 @@ export function restoreTeeToken(pubkey: PublicKey): string | null {
     const raw = sessionStorage.getItem(TEE_STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as StoredTee;
-    if (parsed.pubkey !== pubkey.toBase58()) return null;
+    const key = pubkey.toBase58();
+    if (parsed.pubkey !== key) {
+      // Stale session from another wallet — wipe so it can’t leak.
+      clearStoredTeeToken();
+      return null;
+    }
     if (!parsed.token || !parsed.expiresAt) return null;
-    if (Date.now() > parsed.expiresAt - 60_000) return null;
+    if (Date.now() > parsed.expiresAt - 60_000) {
+      clearStoredTeeToken();
+      return null;
+    }
     useSession.getState().setTee({
       token: parsed.token,
       expiresAt: parsed.expiresAt,
+      pubkey: key,
     });
     return parsed.token;
   } catch {

@@ -47,3 +47,25 @@ export function useMyInventory(owner: string | null | undefined) {
     data: mine,
   };
 }
+
+/** Resolve warehouse rows for revealed indices (catalog fallback if RPC lag). */
+export function resolveRevealedCards(
+  indices: number[],
+  catalog: OnChainItem[] | undefined,
+): OnChainItem[] {
+  return indices.map((index) => {
+    const hit = catalog?.find((x) => x.index === index);
+    if (hit) return hit;
+    return {
+      index,
+      mint: "",
+      rarity: 0,
+      category: 0,
+      value: 0,
+      name: `Creature ${index}`,
+      sold: false,
+      owner: "",
+      ownerShort: "",
+    };
+  });
+}

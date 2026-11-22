@@ -1,37 +1,48 @@
 "use client";
 
-import { motion } from "motion/react";
+import { usePathname } from "next/navigation";
+import { motion, useReducedMotion } from "motion/react";
 
-/** Soft atmospheric video — present, never loud. */
+/**
+ * Halftone navy/cyan atmosphere.
+ * Landing: full-bleed photo. Inner pages: same feel via tinted crop + soft scrim
+ * so body copy never sits raw on the busy dots.
+ */
 export function LiveBackground() {
+  const path = usePathname();
+  const reduce = useReducedMotion();
+  const isHome = path === "/";
+
   return (
     <div
       className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
       aria-hidden
     >
-      <motion.video
-        className="absolute inset-0 h-full w-full scale-105 object-cover opacity-[0.35] saturate-[0.55] contrast-[0.95]"
-        style={{ filter: "blur(2px)" }}
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="metadata"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.35 }}
-        transition={{ duration: 1.8, ease: [0.22, 1, 0.36, 1] }}
-      >
-        <source src="/media/hero-bg.mp4" type="video/mp4" />
-      </motion.video>
-
-      <div className="absolute inset-0 bg-[radial-gradient(90%_70%_at_50%_-10%,rgba(250,249,247,0.2)_0%,rgba(243,241,236,0.88)_48%,#f3f1ec_100%)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(250,249,247,0.55)_0%,transparent_28%,rgba(243,241,236,0.75)_100%)]" />
-
-      <motion.div
-        className="absolute left-1/2 top-[18%] h-[42vmax] w-[58vmax] -translate-x-1/2 rounded-full bg-[#dfe8e2]/35 blur-3xl"
-        animate={{ opacity: [0.35, 0.55, 0.35], scale: [1, 1.04, 1] }}
-        transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
+      <div
+        className="absolute inset-0 bg-[#050a14] bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: "url('/media/halftone-bg.jpg')",
+          backgroundPosition: isHome ? "center center" : "70% 40%",
+          transform: reduce ? undefined : "scale(1.02)",
+        }}
       />
+
+      {/* Keep the photo visible on home; deepen elsewhere for long-form readability */}
+      <div
+        className={
+          isHome
+            ? "absolute inset-0 bg-[linear-gradient(160deg,rgba(5,10,20,0.18)_0%,rgba(5,12,28,0.35)_42%,rgba(4,8,18,0.72)_100%)]"
+            : "absolute inset-0 bg-[linear-gradient(160deg,rgba(5,10,20,0.55)_0%,rgba(5,12,28,0.72)_45%,rgba(4,8,18,0.88)_100%)]"
+        }
+      />
+
+      {!reduce && (
+        <motion.div
+          className="absolute -left-1/4 top-[-10%] h-[55vmax] w-[55vmax] rounded-full bg-[#2b8cff]/12 blur-3xl"
+          animate={{ opacity: [0.2, 0.35, 0.2], scale: [1, 1.05, 1] }}
+          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+        />
+      )}
     </div>
   );
 }

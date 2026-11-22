@@ -29,6 +29,31 @@ export function vaultStatusName(
   return match ?? "Created";
 }
 
+/**
+ * Contents are public after reveal.
+ * Note: `Abandoned` is the zero-bid end state *before* reveal — do not treat as public.
+ * Abandoned lots that open still go Revealed → Closed → Settled (abandoned flag stays).
+ */
+export function revealedItemsVisible(status: VaultStatusName): boolean {
+  switch (status) {
+    case "Revealed":
+    case "Closed":
+    case "Settled":
+      return true;
+    case "Created":
+    case "Delegated":
+    case "Filling":
+    case "Open":
+    case "Ended":
+    case "Abandoned":
+      return false;
+    default: {
+      const _exhaustive: never = status;
+      return _exhaustive;
+    }
+  }
+}
+
 export type DecodedHint = {
   kind: number;
   released: boolean;
@@ -73,4 +98,35 @@ export type DecodedBid = {
   amount: number;
   bidderIndex: number;
   placedTs: number;
+};
+
+export type WinningLot = {
+  vaultId: number;
+  vault: string;
+  status: string;
+  highestBid: number;
+  itemCount: number;
+  revealedItems: number[];
+  revealedValue: number;
+  abandoned: boolean;
+  settled: boolean;
+};
+
+/** Public prize-chain row (safe to share with the browser). */
+export type HistoryLot = {
+  vaultId: number;
+  vault: string;
+  status: VaultStatusName;
+  size: number;
+  itemCount: number;
+  bidCount: number;
+  highestBid: number;
+  winner: string | null;
+  revealedItems: number[];
+  revealedValue: number;
+  abandoned: boolean;
+  openTs: number;
+  deadlineTs: number;
+  prizeRevealed: boolean;
+  live: boolean;
 };

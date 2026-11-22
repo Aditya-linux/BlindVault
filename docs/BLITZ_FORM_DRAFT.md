@@ -1,6 +1,8 @@
 # Blitz V10 — form draft (fill after demo post)
 
 Submit: https://build.magicblock.app/?stage=blitz#submit  
+**Deadline: Friday Nov 27, 2026 · 14:00 UTC (21:00 ICT / 19:30 IST)**  
+Build week: Nov 20–27 · Luma: https://luma.com/hedv5sgh  
 Do **not** submit until site + demo are live. Copy into MagicBlock submit UI.
 
 ## Theme fit (Entertainment Finance)
@@ -44,7 +46,7 @@ Peek fee Solana: https://explorer.solana.com/tx/4x4JX9XQvMYg91Uehuyf87sLmAVi8pdR
 - House PDA: `C7cfsQFawFQkNk6GsRk4LuCtRcUGAg1Ux7mp66EQDDFE`
 - SCRIP mint: `5RMEdwxEqfsdqiuSr658N4M5JFyTSeMC4KcF9b41bWHx`
 - TEE validator: `MTEWGuqxUpYZGFJQcp8tLN7x5v9BSeoFHYWQQ3n3xzo`
-- Active Vault 8: `H7eRknqjXbhho9MKk3vfu7rV4VmqvqNrN4RiXjdjU5VD`
+- Active / recent vault: check https://blind-vault-amber.vercel.app/api/public-vault (Vault 18 opened 2026-11-22)
 - Operator: `4qwVufZVGEgY4WB1ALNGUzqd8DRQQk55SiJQL1zZAUy7`
 
 ## MagicBlock stack used

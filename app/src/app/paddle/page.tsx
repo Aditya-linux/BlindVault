@@ -7,7 +7,9 @@ import { useTeeAuth } from "@/hooks/useTeeAuth";
 import { useFaucet } from "@/hooks/useFaucet";
 import { useActiveVault } from "@/hooks/useActiveVault";
 import { usePaddleBalances } from "@/hooks/usePaddleBalances";
+import { useFaucetCooldown } from "@/hooks/useFaucetCooldown";
 import { WalletButton } from "@/components/WalletButton";
+import { NextBidWindow } from "@/components/NextBidWindow";
 import { shortAddr } from "@/lib/format";
 import { solanaTxUrl } from "@/lib/explorer";
 import {
@@ -18,6 +20,8 @@ import {
 } from "@/components/motion";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { RulesStrip } from "@/components/RulesStrip";
+import { StartTutorialButton } from "@/components/StartTutorialButton";
+import { useWalletHealth } from "@/hooks/useWalletHealth";
 import { cn } from "@/lib/cn";
 
 const DEVNET_FAUCET = "https://faucet.solana.com/";
@@ -28,16 +32,21 @@ type StepId = "wallet" | "guestbook" | "scrip";
 
 export default function PaddlePage() {
   const { connected, publicKey } = useWallet();
+  const health = useWalletHealth();
   const tee = useTeeAuth();
   const faucet = useFaucet();
+  const faucetCd = useFaucetCooldown();
   const active = useActiveVault();
   const bal = usePaddleBalances();
   const qc = useQueryClient();
+  const typicalSecs = active.data?.durationSecs?.[0] ?? 180;
+  const onFaucetCooldown = Boolean(faucetCd.data?.onCooldown);
 
   async function claimScrip() {
     const result = await faucet.claim();
     if (result) {
       await qc.invalidateQueries({ queryKey: ["paddle-balances"] });
+      await qc.invalidateQueries({ queryKey: ["faucet-cooldown"] });
     }
   }
 
@@ -62,12 +71,12 @@ export default function PaddlePage() {
         },
         {
           id: "guestbook" as const,
-          label: "Guest book",
+          label: "Sign in",
           done: guestOk,
         },
         {
           id: "scrip" as const,
-          label: "SCRIP",
+          label: "Credits",
           done: scripOk,
         },
       ] satisfies { id: StepId; label: string; done: boolean }[],
@@ -84,25 +93,39 @@ export default function PaddlePage() {
 
   return (
     <PageEnter>
-      <section className="mx-auto max-w-lg">
-        <header className="mb-6">
-          <h1 className="font-display text-4xl tracking-[-0.03em]">Paddle</h1>
-          <p className="mt-2 text-[15px] leading-relaxed text-steel-deep">
-            Get ready to bid.{" "}
-            <span className="text-ink">SCRIP</span> is free in-game auction
-            credit — not real money. Highest sealed bid wins the creature
-            cards.
-          </p>
+      <section className="bv-stack mx-auto w-full max-w-lg">
+        <header>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h1 className="font-display text-[clamp(2.25rem,6vw,2.75rem)] tracking-[-0.03em]">
+                Set up to bid
+              </h1>
+              <p className="mt-2 text-[15px] leading-relaxed text-steel-deep">
+                Three quick steps.{" "}
+                <span className="text-ink">SCRIP</span> is free play credit —
+                not real money. Highest bid wins the cards.
+              </p>
+            </div>
+            <StartTutorialButton label="Restart tour" />
+          </div>
         </header>
 
+        {connected && health.walletName && (
+          <p className="font-mono text-[11px] text-steel">
+            Connected · {health.walletName}
+            {health.address ? ` · ${health.address.slice(0, 4)}…${health.address.slice(-4)}` : ""}
+            {health.readyForTx ? " · ready for txs" : " · finish warnings above"}
+          </p>
+        )}
+
         {/* Progress */}
-        <div className="bv-card mb-4 p-4">
+        <div className="bv-card">
           <div className="flex items-center justify-between gap-2">
             <p className="text-[13px] font-medium text-ink">
-              Setup {doneCount}/{steps.length}
+              Progress {doneCount}/{steps.length}
             </p>
             <p className="font-mono text-[11px] text-steel">
-              {readyToBid ? "Ready to enter" : "Almost there"}
+              {readyToBid ? "Ready to join" : "Keep going"}
             </p>
           </div>
           <div className="mt-3 flex gap-1.5">
@@ -129,19 +152,20 @@ export default function PaddlePage() {
 
         {/* Watch without wallet */}
         {!connected && (
-          <div className="bv-card mb-4 border-dashed p-4">
-            <p className="text-[14px] font-medium text-ink">Try without a wallet</p>
-            <p className="mt-1 text-[13px] text-steel-deep">
-              Browse the warehouse and public lot views. This does{" "}
-              <span className="font-medium text-ink">not</span> place bids or
-              peeks — those need a Devnet wallet.
+          <div className="bv-card border-dashed border-line">
+            <p className="text-[14px] font-medium text-ink">
+              Just looking? No wallet needed
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <p className="mt-2 text-[13px] leading-relaxed text-steel-deep">
+              You can browse cards and watch a live lot. Bidding and peeks need
+              a Devnet wallet.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
               <MotionNavLink
                 href="/warehouse"
                 className={cn(buttonVariants({ variant: "paper", size: "sm" }))}
               >
-                Browse warehouse
+                Browse cards
               </MotionNavLink>
               {vaultId && hasActive && (
                 <MotionNavLink
@@ -155,20 +179,20 @@ export default function PaddlePage() {
           </div>
         )}
 
-        <Stagger className="flex flex-col gap-3">
+        <Stagger className="flex flex-col gap-4">
           {/* 1 Wallet */}
           <StaggerItem>
             <StepCard
               n={1}
-              title="Connect wallet"
+              title="Connect your wallet"
               done={connected}
               active={activeStep === "wallet"}
             >
               <p className="text-[13px] text-steel-deep">
-                Use Phantom or Solflare on{" "}
+                Use Phantom or Solflare set to{" "}
                 <span className="font-medium text-ink">Devnet</span>
-                {" "}(Settings → Developer Settings → Testnet Mode / Devnet).
-                This app only talks to Solana Devnet.
+                {" "}(wallet Settings → Developer → Testnet / Devnet). This app
+                only works on Devnet.
               </p>
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <WalletButton />
@@ -210,14 +234,14 @@ export default function PaddlePage() {
           <StaggerItem>
             <StepCard
               n={2}
-              title="Sign guest book"
+              title="Sign in (free)"
               done={guestOk}
               active={activeStep === "guestbook"}
               locked={!connected}
             >
               <p className="text-[13px] text-steel-deep">
-                Free signature unlocks private TEE reads (sealed bids & peeks).
-                Returning players skip this if the session is still fresh.
+                Approve one free message in your wallet. That unlocks private
+                bids and peeks. If you already signed this session, you can skip.
               </p>
               <Button
                 variant="paper"
@@ -226,13 +250,17 @@ export default function PaddlePage() {
                 onClick={() => void tee.signGuestBook()}
               >
                 {guestOk
-                  ? "Signed"
+                  ? "Signed in"
                   : tee.busy
-                    ? "Waiting for wallet…"
-                    : "Sign guest book"}
+                    ? "Check your wallet…"
+                    : "Sign in"}
               </Button>
               {tee.error && (
-                <p className="mt-2 text-[12px] leading-relaxed text-stamp-red-deep">
+                <p
+                  role="alert"
+                  aria-live="polite"
+                  className="mt-2 text-[12px] leading-relaxed text-stamp-red-deep"
+                >
                   {tee.error}
                 </p>
               )}
@@ -243,16 +271,16 @@ export default function PaddlePage() {
           <StaggerItem>
             <StepCard
               n={3}
-              title="Claim SCRIP credits"
+              title="Get free SCRIP"
               done={scripOk}
               active={activeStep === "scrip"}
               locked={!connected}
             >
               <p className="text-[13px] text-steel-deep">
                 SCRIP is free play money for bids and peeks —{" "}
-                <span className="font-medium text-ink">not real value</span>.
-                Claim 500 SCRIP (12h cooldown). You still need a little Devnet
-                SOL to pay network fees.
+                <span className="font-medium text-ink">not real cash</span>.
+                Claim 500 SCRIP (once every 12 hours). You also need a little
+                free Devnet SOL for network fees.
               </p>
               {connected && (
                 <p className="mt-2 font-mono text-[11px] text-steel-deep">
@@ -265,18 +293,33 @@ export default function PaddlePage() {
                   {scripOk && scripUi > 0 ? " · enough to bid" : ""}
                 </p>
               )}
+              {onFaucetCooldown && faucetCd.data?.nextClaimTs ? (
+                <NextBidWindow
+                  className="mt-4"
+                  reason="faucet"
+                  nextReadyTs={faucetCd.data.nextClaimTs}
+                  typicalDurationSecs={typicalSecs}
+                />
+              ) : null}
               <Button
                 className="mt-4"
-                disabled={!connected || faucet.busy || (scripOk && scripUi >= 100)}
+                disabled={
+                  !connected ||
+                  faucet.busy ||
+                  onFaucetCooldown ||
+                  (scripOk && scripUi >= 100)
+                }
                 onClick={() => void claimScrip()}
               >
                 {faucet.busy
                   ? "Claiming…"
-                  : scripOk && scripUi >= MIN_SCRIP_UI
-                    ? scripUi >= 100
-                      ? "Credits ready"
-                      : "Claim more SCRIP"
-                    : "Claim 500 SCRIP"}
+                  : onFaucetCooldown
+                    ? "On cooldown"
+                    : scripOk && scripUi >= MIN_SCRIP_UI
+                      ? scripUi >= 100
+                        ? "Credits ready"
+                        : "Claim more SCRIP"
+                      : "Claim 500 SCRIP"}
               </Button>
               {faucet.sig && (
                 <a
@@ -289,7 +332,11 @@ export default function PaddlePage() {
                 </a>
               )}
               {faucet.error && (
-                <p className="mt-2 text-[12px] leading-relaxed text-stamp-red-deep">
+                <p
+                  role="alert"
+                  aria-live="polite"
+                  className="mt-2 text-[12px] leading-relaxed text-stamp-red-deep"
+                >
                   {formatFaucetError(faucet.error, solOk)}
                 </p>
               )}
@@ -317,18 +364,21 @@ export default function PaddlePage() {
             href={`/vault/${vaultId}`}
             className={cn(buttonVariants({ size: "lg" }), "mt-8 w-full")}
           >
-            Enter lot {vaultId}
+            Join lot {vaultId}
           </MotionNavLink>
         ) : readyToBid ? (
-          <MotionNavLink
-            href="/warehouse"
-            className={cn(buttonVariants({ size: "lg" }), "mt-8 w-full")}
-          >
-            Browse warehouse · waiting for next lot
-          </MotionNavLink>
+          <div className="mt-8 space-y-3">
+            <NextBidWindow reason="no-lot" typicalDurationSecs={typicalSecs} />
+            <MotionNavLink
+              href="/warehouse"
+              className={cn(buttonVariants({ size: "lg" }), "w-full")}
+            >
+              Browse cards while you wait
+            </MotionNavLink>
+          </div>
         ) : (
           <p className="mt-6 text-center text-[12px] text-steel">
-            Finish the steps above to seal a bid. Or{" "}
+            Finish the steps above, then join a lot. Or{" "}
             <MotionNavLink href="/warehouse" className="underline">
               browse cards
             </MotionNavLink>{" "}
@@ -339,8 +389,7 @@ export default function PaddlePage() {
         <RulesStrip className="mt-8" />
 
         <p className="mt-6 text-center text-[11px] leading-relaxed text-steel">
-          Devnet only · no real funds · fill uses TEE-local entropy (not VRF
-          yet)
+          Test network only · free play credits · no real money
         </p>
       </section>
     </PageEnter>
@@ -365,7 +414,7 @@ function StepCard({
   return (
     <div
       className={cn(
-        "bv-card p-5 transition-opacity",
+        "bv-card transition-opacity",
         locked && "opacity-55",
         active && !done && "ring-1 ring-accent/25",
       )}
@@ -384,7 +433,7 @@ function StepCard({
           </span>
         ) : null}
       </div>
-      <div className="mt-2">{children}</div>
+      <div className="mt-3">{children}</div>
     </div>
   );
 }

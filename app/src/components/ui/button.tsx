@@ -6,16 +6,16 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/cn";
 
 const buttonVariants = cva(
-  "bv-btn inline-flex items-center justify-center gap-2 whitespace-nowrap text-[14px] focus-visible:outline-none disabled:pointer-events-none disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+  "bv-btn inline-flex items-center justify-center gap-2 whitespace-nowrap text-[14px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[color-mix(in_oklab,var(--color-accent)_55%,transparent)] disabled:pointer-events-none disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-ink text-paper",
-        teal: "bg-accent text-paper",
-        paper: "border border-line bg-paper/80 text-ink",
-        danger: "bg-stamp-red text-paper",
-        brass: "bg-cardboard text-ink",
-        ghost: "bg-transparent text-ink",
+        default: "bg-accent font-semibold text-[#041018]",
+        teal: "bg-accent font-semibold text-[#041018]",
+        paper: "border border-line bg-paper/95 text-ink",
+        danger: "bg-stamp-red font-semibold text-[#18060a]",
+        brass: "border border-line bg-cardboard text-ink",
+        ghost: "bg-transparent text-ink hover:bg-cardboard/60",
       },
       size: {
         default: "h-11 px-5",

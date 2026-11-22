@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   motion,
+  useReducedMotion,
   type HTMLMotionProps,
   type Transition,
 } from "motion/react";
@@ -15,7 +16,11 @@ export const spring: Transition = {
   stiffness: 380,
   damping: 28,
 };
-export const soft: Transition = { duration: 0.35, ease: [0.22, 1, 0.36, 1] };
+/** Strong ease-out (Emil) — enter / exit under ~300ms */
+export const soft: Transition = {
+  duration: 0.28,
+  ease: [0.23, 1, 0.32, 1],
+};
 
 export function PageEnter({
   children,
@@ -24,10 +29,14 @@ export function PageEnter({
   children: ReactNode;
   className?: string;
 }) {
+  const reduce = useReducedMotion();
+  if (reduce) {
+    return <div className={className}>{children}</div>;
+  }
   return (
     <motion.div
       className={className}
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={soft}
     >
@@ -39,12 +48,16 @@ export function PageEnter({
 export function Stagger({
   children,
   className,
-  delay = 0.05,
+  delay = 0.04,
 }: {
   children: ReactNode;
   className?: string;
   delay?: number;
 }) {
+  const reduce = useReducedMotion();
+  if (reduce) {
+    return <div className={className}>{children}</div>;
+  }
   return (
     <motion.div
       className={className}
@@ -67,11 +80,15 @@ export function StaggerItem({
   children: ReactNode;
   className?: string;
 }) {
+  const reduce = useReducedMotion();
+  if (reduce) {
+    return <div className={className}>{children}</div>;
+  }
   return (
     <motion.div
       className={className}
       variants={{
-        hidden: { opacity: 0, y: 10 },
+        hidden: { opacity: 0, y: 8 },
         show: { opacity: 1, y: 0, transition: soft },
       }}
     >
@@ -89,10 +106,11 @@ export function MotionNavLink({
   className?: string;
   children: ReactNode;
 }) {
+  const reduce = useReducedMotion();
   return (
     <motion.div
       className="contents"
-      whileTap={{ scale: 0.985 }}
+      whileTap={reduce ? undefined : { scale: 0.97 }}
       transition={spring}
     >
       <Link href={href} className={className}>
@@ -107,10 +125,11 @@ export function MotionButton({
   children,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & { className?: string }) {
+  const reduce = useReducedMotion();
   return (
     <motion.button
-      className={className}
-      whileTap={{ scale: 0.98 }}
+      className={cn(className)}
+      whileTap={reduce ? undefined : { scale: 0.97 }}
       transition={spring}
       {...(props as HTMLMotionProps<"button">)}
     >

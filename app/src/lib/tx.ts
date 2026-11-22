@@ -24,7 +24,14 @@ async function sendOn(
   layer: "solana" | "tee",
   evidence?: { vaultId: string; label: string },
 ): Promise<SendResult> {
-  if (!wallet.publicKey) throw new Error("Wallet not connected");
+  if (!wallet.publicKey) {
+    throw new Error("Wallet not connected — connect Phantom/Solflare on Devnet.");
+  }
+  if (!wallet.signTransaction) {
+    throw new Error(
+      "This wallet can’t sign transactions. Try Phantom or Solflare.",
+    );
+  }
   const { blockhash, lastValidBlockHeight } =
     await connection.getLatestBlockhash("confirmed");
   const tx = new Transaction({
@@ -32,11 +39,47 @@ async function sendOn(
     blockhash,
     lastValidBlockHeight,
   }).add(...ixs);
-  const signed = await wallet.signTransaction(tx);
-  const sig = await connection.sendRawTransaction(signed.serialize(), {
-    skipPreflight: false,
-    preflightCommitment: "confirmed",
-  });
+  let signed: Transaction;
+  try {
+    signed = await wallet.signTransaction(tx);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    const lower = msg.toLowerCase();
+    if (
+      lower.includes("user rejected") ||
+      lower.includes("rejected") ||
+      lower.includes("cancelled") ||
+      lower.includes("canceled")
+    ) {
+      throw new Error("You rejected the wallet popup — try again and approve.");
+    }
+    if (lower.includes("unexpected") || lower.includes("network")) {
+      throw new Error(
+        `${msg} — Confirm the wallet is on Devnet, then disconnect and reconnect.`,
+      );
+    }
+    throw e instanceof Error ? e : new Error(msg);
+  }
+  let sig: string;
+  try {
+    sig = await connection.sendRawTransaction(signed.serialize(), {
+      skipPreflight: false,
+      preflightCommitment: "confirmed",
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    const lower = msg.toLowerCase();
+    if (
+      lower.includes("attempt to debit") ||
+      lower.includes("insufficient") ||
+      lower.includes("no record of a prior credit")
+    ) {
+      throw new Error(
+        `${msg} — Need Devnet SOL for fees. Switch wallet to Devnet, use faucet.solana.com, reconnect.`,
+      );
+    }
+    throw e instanceof Error ? e : new Error(msg);
+  }
   await connection.confirmTransaction(
     { signature: sig, blockhash, lastValidBlockHeight },
     "confirmed",

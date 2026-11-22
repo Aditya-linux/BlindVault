@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
+import { useReducedMotion } from "motion/react";
 import { categoryLabel, rarityLabel } from "@/lib/format";
 import {
   creatureDisplayName,
@@ -9,6 +10,7 @@ import {
   rarityOddsLabel,
 } from "@/lib/creatureCatalog";
 import { creaturePalette } from "@/lib/creatureArt";
+import { motion, soft } from "@/components/motion";
 
 type Props = {
   index: number;
@@ -18,7 +20,27 @@ type Props = {
   value: number;
   sold?: boolean;
   compact?: boolean;
+  /** Stack count for duplicates — show ×N when > 1. */
+  count?: number;
 };
+
+function rarityTier(
+  rarity: number,
+): "common" | "silver" | "shiny" | "gold" | "legendary" {
+  if (rarity >= 4) return "legendary";
+  if (rarity === 3) return "gold";
+  if (rarity === 2) return "shiny";
+  if (rarity === 1) return "silver";
+  return "common";
+}
+
+const HOVER_LIFT = {
+  common: { y: -8, scale: 1.04 },
+  silver: { y: -9, scale: 1.045 },
+  shiny: { y: -10, scale: 1.05 },
+  gold: { y: -12, scale: 1.06 },
+  legendary: { y: -14, scale: 1.07 },
+} as const;
 
 export function CollectibleCard({
   index,
@@ -28,25 +50,24 @@ export function CollectibleCard({
   value,
   sold = false,
   compact = false,
+  count = 1,
 }: Props) {
+  const reduce = useReducedMotion();
+  const [hot, setHot] = useState(false);
   const palette = creaturePalette(index, rarity);
   const displayName = creatureDisplayName(index, name);
   const src = creatureImageSrc(index);
   const rarityName = rarityLabel(rarity);
-  const shiny = rarity === 2;
-  const gold = rarity === 3;
-  const legendary = rarity >= 4;
-  const silver = rarity === 1;
+  const tier = rarityTier(rarity);
+  const lift = HOVER_LIFT[tier];
 
   return (
-    <article
+    <motion.article
       className={[
-        "collectible-card pressable relative overflow-hidden",
-        silver ? "collectible-card--silver" : "",
-        shiny ? "collectible-card--shiny" : "",
-        gold ? "collectible-card--gold" : "",
-        legendary ? "collectible-card--legendary" : "",
+        "collectible-card relative",
+        `collectible-card--${tier}`,
         compact ? "collectible-card--compact" : "",
+        hot ? "is-hot" : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -59,16 +80,35 @@ export function CollectibleCard({
           "--card-foil": palette.foil,
         } as CSSProperties
       }
+      onHoverStart={() => setHot(true)}
+      onHoverEnd={() => setHot(false)}
+      onMouseEnter={() => setHot(true)}
+      onMouseLeave={() => setHot(false)}
+      animate={hot && !reduce ? lift : { y: 0, scale: 1 }}
+      transition={soft}
     >
+      <div className="collectible-card__glow" aria-hidden />
+      <div className="collectible-card__sheen" aria-hidden />
       <div className="collectible-card__frame">
         <div className="collectible-card__header">
-          <span className="collectible-card__name">{displayName}</span>
+          <span className="collectible-card__name">
+            {displayName}
+            {count > 1 ? (
+              <span className="collectible-card__qty" aria-label={`times ${count}`}>
+                {" "}
+                ×{count}
+              </span>
+            ) : null}
+          </span>
           <span className="collectible-card__hp">{value}</span>
         </div>
 
         <div className="collectible-card__art">
-          {(shiny || gold || legendary) && (
+          {(tier === "shiny" || tier === "gold" || tier === "legendary") && (
             <div className="collectible-card__holo" aria-hidden />
+          )}
+          {tier === "legendary" && (
+            <div className="collectible-card__sparkles" aria-hidden />
           )}
           {src ? (
             <div className="collectible-card__img-wrap">
@@ -106,7 +146,12 @@ export function CollectibleCard({
         )}
       </div>
 
+      {count > 1 && (
+        <span className="collectible-card__count" aria-hidden>
+          ×{count}
+        </span>
+      )}
       {sold && <span className="collectible-card__sold">Sold</span>}
-    </article>
+    </motion.article>
   );
 }

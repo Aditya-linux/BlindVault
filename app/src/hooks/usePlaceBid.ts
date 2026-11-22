@@ -25,7 +25,7 @@ const TEE_VALIDATOR = new PublicKey(
 
 export function usePlaceBid(vault: DecodedVault | null | undefined) {
   const { connection } = useConnection();
-  const { publicKey, signTransaction } = useWallet();
+  const { publicKey, signTransaction, connected } = useWallet();
   const { ensureToken } = useTeeAuth();
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
@@ -38,8 +38,10 @@ export function usePlaceBid(vault: DecodedVault | null | undefined) {
         setError("No active vault");
         return null;
       }
-      if (!publicKey || !signTransaction) {
-        setError("Connect a wallet first");
+      if (!connected || !publicKey || !signTransaction) {
+        setError(
+          "Connect Phantom or Solflare on Devnet first, then try again.",
+        );
         return null;
       }
       if (vault.status !== "Open") {
@@ -153,7 +155,15 @@ export function usePlaceBid(vault: DecodedVault | null | undefined) {
         setBusy(false);
       }
     },
-    [vault, publicKey, signTransaction, ensureToken, qc, connection],
+    [
+      vault,
+      connected,
+      publicKey,
+      signTransaction,
+      ensureToken,
+      qc,
+      connection,
+    ],
   );
 
   return { placeBid, busy, error, lastSig };

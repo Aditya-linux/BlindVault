@@ -8,18 +8,23 @@ import { hintCopy } from "@/lib/hints";
 import { sizeLabel, shortAddr } from "@/lib/format";
 import { housePda, vaultPda } from "@/lib/pdas";
 import { Countdown } from "@/components/Countdown";
+import { NextBidWindow } from "@/components/NextBidWindow";
 import { useVaultLive } from "@/hooks/useVaultLive";
 import { useHintsLive } from "@/hooks/useHintsLive";
 import { useMyBid } from "@/hooks/useMyBid";
 import { usePlaceBid } from "@/hooks/usePlaceBid";
 import { useBuyPeek, useMyPeek } from "@/hooks/useBuyPeek";
 import { useHintPublisher } from "@/hooks/useHintPublisher";
+import { useLotCloser } from "@/hooks/useLotCloser";
 import { useTeeAuth } from "@/hooks/useTeeAuth";
 import { useActiveVault } from "@/hooks/useActiveVault";
 import { solanaTxUrl, teeTxUrl } from "@/lib/explorer";
 import { MotionNavLink, PageEnter, soft, spring } from "@/components/motion";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
+import { formatMinutesLabel } from "@/lib/formatTime";
+import { useNowSecs } from "@/hooks/useNow";
+import { useStableNextLotEta } from "@/hooks/useStableNextLotEta";
 
 export default function LiveVaultPage() {
   const params = useParams<{ id: string }>();
@@ -40,6 +45,7 @@ export default function LiveVaultPage() {
   const active = useActiveVault();
   const { connected } = useWallet();
   useHintPublisher(vaultQ.data);
+  const closer = useLotCloser(vaultQ.data);
 
   const minBid = vaultQ.data
     ? vaultQ.data.minBid / 1_000_000
@@ -59,13 +65,26 @@ export default function LiveVaultPage() {
 
   const hints = hintsQ.data?.hints ?? [];
   const released = hints.filter((h) => h.released);
-  const nowTs = Math.floor(Date.now() / 1000);
+  const nowTs = useNowSecs();
   const pastDeadline =
     Boolean(vaultQ.data?.deadlineTs) &&
     vaultQ.data!.deadlineTs > 0 &&
     nowTs >= vaultQ.data!.deadlineTs;
+  // Prefer house timing for “new lots” copy — this vault may still be an old 10m lot.
+  const typicalSecs =
+    active.data?.durationSecs?.[vaultQ.data?.size ?? 0] ||
+    active.data?.durationSecs?.[0] ||
+    vaultQ.data?.durationSecs ||
+    180;
+  const nextEta = useStableNextLotEta({
+    enabled: pastDeadline || lotFinished,
+    deadlineTs: vaultQ.data?.deadlineTs,
+    status: vaultQ.data?.status,
+    nowTs,
+    vaultId: id,
+  });
   const statusLabel = vaultQ.isLoading
-    ? "Loading"
+    ? "Loading…"
     : vaultQ.isError
       ? "Error"
       : !vaultQ.data
@@ -75,25 +94,25 @@ export default function LiveVaultPage() {
           : vaultQ.data.status;
 
   return (
-    <PageEnter>
+    <PageEnter className="bv-stack">
       {lotFinished && (
-        <div className="bv-card mb-6 flex flex-wrap items-center justify-between gap-3 p-4">
-          <p className="text-[14px] text-steel-deep">
-            This lot is finished — open Reveal to see the cards and winner.
+        <div className="bv-card flex flex-wrap items-center justify-between gap-3">
+          <p className="text-[14px] leading-relaxed text-steel-deep">
+            This auction is over — see what was inside and who won.
           </p>
           <MotionNavLink
             href={`/vault/${params.id}/reveal`}
             className={cn(buttonVariants({ size: "sm" }))}
           >
-            Open Reveal
+            See results
           </MotionNavLink>
         </div>
       )}
 
-      <header className="mb-8 flex flex-wrap items-end justify-between gap-6">
+      <header className="flex flex-wrap items-end justify-between gap-4 sm:gap-6">
         <div>
-          <p className="text-[13px] font-medium text-steel-deep">Live arena</p>
-          <h1 className="mt-1 font-display text-4xl tracking-[-0.03em] text-ink sm:text-5xl">
+          <p className="text-[13px] font-medium text-steel-deep">Live auction</p>
+          <h1 className="mt-1 font-display text-[clamp(2.25rem,6vw,3.25rem)] tracking-[-0.03em] text-ink">
             Lot {params.id}
           </h1>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -114,15 +133,99 @@ export default function LiveVaultPage() {
             )}
           </div>
           {pastDeadline && vaultQ.data?.status === "Open" && (
-            <p className="mt-3 text-[13px] font-medium text-stamp-red-deep">
-              Clock hit zero — bidding closed. Waiting for reveal…
+            <p className="mt-3 rounded-xl border border-stamp-red/35 bg-[#2a1218]/85 px-3 py-2 text-[13px] font-medium text-stamp-red-deep">
+              Bidding is closed. The next auction opens after this lot wraps up
+              — see the timer below.
             </p>
           )}
         </div>
-        <Countdown deadlineTs={vaultQ.data?.deadlineTs ?? 0} />
+        <Countdown
+          tone={nextEta ? "next" : "bid"}
+          deadlineTs={
+            nextEta
+              ? nextEta.displayReadyTs
+              : (vaultQ.data?.deadlineTs ?? 0)
+          }
+          activeLabel={nextEta ? "Next bid in" : "Bidding ends in"}
+          expiredLabel={
+            nextEta?.getReady
+              ? "Get ready"
+              : nextEta
+                ? "Opening soon"
+                : "Bidding closed"
+          }
+          getReady={Boolean(nextEta?.getReady)}
+          expiredHint={
+            nextEta
+              ? nextEta.getReady
+                ? `Stay ready — tap Join when the next lot opens (~${formatMinutesLabel(typicalSecs)} each).`
+                : `Next auction timer — wraps up this lot, then opens the next (~${formatMinutesLabel(typicalSecs)} each).`
+              : vaultQ.data
+                ? `When this hits zero, the green next-bid timer starts (~${formatMinutesLabel(typicalSecs)} lots).`
+                : undefined
+          }
+        />
       </header>
 
-      <section className="grid gap-5 lg:grid-cols-[1.4fr_0.9fr]">
+      {(pastDeadline || lotFinished) && (
+        <NextBidWindow
+          className="mb-6"
+          reason={lotFinished ? "settling" : "lot-ended"}
+          typicalDurationSecs={typicalSecs}
+          nextReadyTs={nextEta?.displayReadyTs}
+          getReady={Boolean(nextEta?.getReady)}
+          timerLabel="Bidding opens in"
+          phaseHint={nextEta?.phaseLabel}
+        />
+      )}
+
+      {(closer.canEnd || closer.canSettle) && (
+        <div className="bv-card mb-6 flex flex-col gap-3 p-5">
+          <p className="text-[14px] text-steel-deep">
+            {closer.canEnd
+              ? "You bid on this lot. Tap below to close bidding so cards can reveal. Your amount stays private."
+              : "You won — confirm settlement so the next auction can open."}
+          </p>
+          <Button
+            onClick={() => void closer.run()}
+            disabled={closer.busy}
+            className="w-fit"
+          >
+            {closer.busy
+              ? "Working…"
+              : closer.canEnd
+                ? "Close bidding"
+                : "Claim my win"}
+          </Button>
+          {closer.error && (
+            <p
+              role="alert"
+              aria-live="polite"
+              className="font-mono text-[11px] text-stamp-red-deep"
+            >
+              {closer.error}
+            </p>
+          )}
+          {closer.sig && (
+            <p className="font-mono text-[11px] text-accent">
+              Sent · {closer.sig.slice(0, 12)}…
+            </p>
+          )}
+        </div>
+      )}
+
+      {pastDeadline &&
+        vaultQ.data?.status === "Open" &&
+        connected &&
+        !closer.hasMyBid && (
+          <p className="mb-6 text-[13px] text-steel-deep">
+            {(vaultQ.data?.bidCount ?? 0) === 0
+              ? `No bids this round — the house crank is closing it so the next ~${formatMinutesLabel(typicalSecs)} auction can open.`
+              : `A sealed bidder (or the house crank) must close this lot before the next auction. Typical lots run ~${formatMinutesLabel(typicalSecs)}.`}
+          </p>
+        )}
+
+      <section className="grid gap-5 md:gap-6 lg:grid-cols-[1.35fr_0.95fr]">
         <div className="space-y-5">
           <article className="bv-card p-6 sm:p-7">
             <div className="flex items-baseline justify-between gap-3">
@@ -134,14 +237,15 @@ export default function LiveVaultPage() {
 
             <ul className="mt-5 space-y-3">
               {released.length === 0 && (
-                <li className="rounded-2xl bg-cream/80 px-4 py-3 text-[14px] text-steel-deep">
-                  Nothing public yet. The TEE clock releases hints in sequence.
+                <li className="rounded-2xl border border-line bg-cardboard/90 px-4 py-3 text-[14px] text-steel-deep">
+                  No public hints yet. Clues unlock automatically as time
+                  passes.
                 </li>
               )}
               {released.map((h) => (
                 <motion.li
                   key={h.kind}
-                  className="rounded-2xl bg-ink px-4 py-3.5 text-[14px] leading-relaxed text-paper"
+                  className="rounded-2xl border border-accent/25 bg-[#0a1a33] px-4 py-3.5 text-[14px] leading-relaxed text-ink"
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={soft}
@@ -187,39 +291,41 @@ export default function LiveVaultPage() {
 
           <article className="bv-card p-5">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-[13px] font-medium text-steel-deep">Activity</p>
+              <p className="text-[13px] font-medium text-steel-deep">
+                What’s happening
+              </p>
               <MotionNavLink
                 href={`/vault/${params.id}/proof`}
                 className="text-[12px] font-medium text-accent"
               >
-                Evidence
+                Proofs
               </MotionNavLink>
             </div>
             <ul className="mt-3 space-y-2 text-[13px] text-steel-deep">
               <li>
-                {vaultQ.data?.itemCount ?? "—"} cards sealed in the vault
-                (identities private)
+                {vaultQ.data?.itemCount ?? "—"} cards inside (hidden until
+                reveal)
               </li>
               <li>
-                {vaultQ.data?.bidCount ?? 0} sealed bid
+                {vaultQ.data?.bidCount ?? 0} bid
                 {(vaultQ.data?.bidCount ?? 0) === 1 ? "" : "s"} · amounts hidden
               </li>
               <li>
-                {vaultQ.data?.peeksSold ?? 0} private peek
-                {(vaultQ.data?.peeksSold ?? 0) === 1 ? "" : "s"} purchased
+                {vaultQ.data?.peeksSold ?? 0} peek
+                {(vaultQ.data?.peeksSold ?? 0) === 1 ? "" : "s"} bought
               </li>
               <li>
-                {released.length}/4 public hints released
+                {released.length}/4 public hints
                 {released.length > 0
                   ? ` · latest: ${hintCopy(released[released.length - 1]!)}`
                   : ""}
               </li>
               {myBid.data && (
-                <li className="text-accent">Your envelope is sealed</li>
+                <li className="text-accent">Your bid is in</li>
               )}
             </ul>
             <p className="mt-3 font-mono text-[10px] text-steel">
-              Feed uses live vault fields only — no bidder ids or amounts.
+              Live counts only — no names or bid amounts shown.
             </p>
           </article>
         </div>
@@ -227,14 +333,14 @@ export default function LiveVaultPage() {
         <aside className="bv-card flex flex-col gap-5 p-6">
           <div>
             <h2 className="font-display text-2xl tracking-[-0.02em]">
-              Sealed bid
+              Your bid
             </h2>
             <p className="mt-1 text-[13px] text-steel-deep">
-              One bid per wallet · amounts stay private until reveal
+              One bid per wallet. Others can’t see your amount until reveal.
             </p>
             <p className="mt-1 font-mono text-[11px] text-steel">
-              {connected ? "Wallet ready" : "Connect a wallet"} ·{" "}
-              {tee.token ? "TEE signed" : "guest book needed"}
+              {connected ? "Wallet connected" : "Connect a wallet"} ·{" "}
+              {tee.token ? "signed in" : "sign in needed"}
             </p>
           </div>
 
@@ -244,7 +350,7 @@ export default function LiveVaultPage() {
               size="sm"
               onClick={() => void tee.signGuestBook()}
             >
-              Sign guest book
+              Sign in
             </Button>
           )}
 
@@ -255,28 +361,40 @@ export default function LiveVaultPage() {
               animate={{ opacity: 1, scale: 1 }}
               transition={spring}
             >
-              <p className="text-[14px] font-medium text-ink">Envelope sealed</p>
+              <p className="text-[14px] font-medium text-ink">Bid locked in</p>
               <p className="mt-1 font-mono text-[12px] text-steel-deep">
                 {myBid.data.amount / 1_000_000} SCRIP · #{myBid.data.bidderIndex}
               </p>
             </motion.div>
           ) : (
             <>
-              <label className="block text-[13px] font-medium text-ink">
-                Amount
-                <div className="mt-2 flex items-center gap-2 rounded-2xl border border-line bg-mist px-4 py-3">
+              <label
+                htmlFor="bid-amount"
+                className="block text-[13px] font-medium text-ink"
+              >
+                How much SCRIP?
+                <div className="mt-2 flex items-center gap-2 rounded-2xl border border-line bg-mist px-4 py-3 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[color-mix(in_oklab,var(--color-accent)_55%,transparent)]">
                   <input
+                    id="bid-amount"
+                    name="bidAmount"
                     type="number"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    spellCheck={false}
                     min={minBid}
+                    step="any"
                     value={amount}
                     onChange={(e) => setAmount(Number(e.target.value))}
-                    className="w-full bg-transparent font-mono text-[16px] outline-none"
+                    placeholder={`${minBid}…`}
+                    className="w-full min-w-0 bg-transparent font-mono text-[16px] tabular-nums outline-none"
                   />
-                  <span className="text-[12px] text-steel-deep">SCRIP</span>
+                  <span className="shrink-0 text-[12px] text-steel-deep">
+                    SCRIP
+                  </span>
                 </div>
               </label>
               <p className="font-mono text-[11px] text-steel">
-                Min {minBid} · one bid per wallet
+                Minimum {minBid} · one bid only
               </p>
               <Button
                 size="lg"
@@ -289,13 +407,17 @@ export default function LiveVaultPage() {
                   vaultQ.data?.status !== "Open"
                 }
               >
-                {place.busy ? "Sealing…" : "Seal bid"}
+                {place.busy ? "Placing bid…" : "Place sealed bid"}
               </Button>
             </>
           )}
 
           {place.error && (
-            <p className="font-mono text-[12px] text-stamp-red-deep">
+            <p
+              role="alert"
+              aria-live="polite"
+              className="font-mono text-[12px] text-stamp-red-deep"
+            >
               {place.error}
             </p>
           )}
@@ -314,10 +436,10 @@ export default function LiveVaultPage() {
 
           <div>
             <h3 className="font-display text-xl tracking-[-0.02em]">
-              Private peek
+              Optional peek
             </h3>
             <p className="mt-1 text-[13px] text-steel-deep">
-              {peekFeeScr} SCRIP · buyer-only TEE eyes
+              {peekFeeScr} SCRIP · see one slot’s rarity & type (only you)
             </p>
           </div>
 
@@ -347,11 +469,15 @@ export default function LiveVaultPage() {
                   !connected
                 }
             >
-              {peek.busy ? "Peering…" : "Buy private peek"}
+              {peek.busy ? "Buying peek…" : "Buy a peek"}
             </Button>
           )}
           {peek.error && (
-            <p className="font-mono text-[12px] text-stamp-red-deep">
+            <p
+              role="alert"
+              aria-live="polite"
+              className="font-mono text-[12px] text-stamp-red-deep"
+            >
               {peek.error}
             </p>
           )}

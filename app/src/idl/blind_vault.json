@@ -399,6 +399,121 @@
       "args": []
     },
     {
+      "name": "close_peek_keeper",
+      "docs": [
+        "House authority closes a foreign peek after reveal.",
+        "Peek ACL lists the vault PDA as AUTHORITY (same pattern as MB-016 bids),",
+        "so the buyer does not need to be online — unblocks abandoned close_round."
+      ],
+      "discriminator": [
+        52,
+        90,
+        249,
+        83,
+        255,
+        169,
+        106,
+        147
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "house",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  117,
+                  115,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "lot",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lot.house",
+                "account": "Vault"
+              },
+              {
+                "kind": "account",
+                "path": "lot.id",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "buyer"
+        },
+        {
+          "name": "peek",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  101,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lot"
+              },
+              {
+                "kind": "account",
+                "path": "buyer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "peek_permission",
+          "writable": true
+        },
+        {
+          "name": "permission_program",
+          "address": "ACLseoPoyC3cBqoUtkbjZ4aDrkurZW86v19pXz2XQnp1"
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "address": "MagicVau1t999999999999999999999999999999999"
+        },
+        {
+          "name": "magic_program",
+          "address": "Magic11111111111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "close_round",
       "discriminator": [
         149,
@@ -1738,6 +1853,83 @@
         {
           "name": "vault",
           "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "force_abandon_stale",
+      "docs": [
+        "House escape hatch after deadline + grace when private bids block `end_auction`.",
+        "Marks the lot abandoned and treats bids/peeks as closed so settlement can finish",
+        "and a new Open lot can start (Devnet faucet SCRIP — not real funds)."
+      ],
+      "discriminator": [
+        200,
+        176,
+        99,
+        152,
+        233,
+        165,
+        239,
+        154
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "house"
+        },
+        {
+          "name": "vault",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "force_clear_active",
+      "docs": [
+        "Clear `house.active_vault` so a new lot can open when the prior round is stuck",
+        "mid-settlement on TEE (Devnet/demo escape hatch)."
+      ],
+      "discriminator": [
+        46,
+        16,
+        138,
+        34,
+        169,
+        42,
+        36,
+        204
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "house",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  117,
+                  115,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault"
         }
       ],
       "args": []

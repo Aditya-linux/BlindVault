@@ -3,6 +3,8 @@ import { create } from "zustand";
 type TeeAuth = {
   token: string | null;
   expiresAt: number | null;
+  /** Wallet pubkey the TEE token was issued for — must match connected key. */
+  pubkey: string | null;
 };
 
 type SessionState = TeeAuth & {
@@ -17,10 +19,11 @@ type SessionState = TeeAuth & {
 export const useSession = create<SessionState>((set) => ({
   token: null,
   expiresAt: null,
+  pubkey: null,
   soundOn: true,
   reducedMotion: false,
   setTee: (t) => set(t),
-  clearTee: () => set({ token: null, expiresAt: null }),
+  clearTee: () => set({ token: null, expiresAt: null, pubkey: null }),
   toggleSound: () => set((s) => ({ soundOn: !s.soundOn })),
   toggleReducedMotion: () =>
     set((s) => ({ reducedMotion: !s.reducedMotion })),

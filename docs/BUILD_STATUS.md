@@ -1,37 +1,46 @@
 # Build Status
 
 ```text
-PHASE: Vault 8 FULL LOOP PASS · Vault 9 OPEN for demo
+PHASE: Prize history chain live · plain copy · finish-today sprint
 HACK: Solana Blitz v10 · Entertainment Finance · submit build.magicblock.app/?stage=blitz#submit
 
 DONE (live Devnet/TEE):
   - Program E9UmQYi4gTHyyQ3SK5B4UCpewBnUBFrEc5NqkkAjr42h
-  - Vault 5 settle PASS · Vault 6/7 abandon+peek PASS
-  - Vault 8 FULL LOOP PASS (bid → peek → hints → end → reveal → settle → close → finalize)
-    end 4nz1D5… · reveal 4ARshZ… · settle 27LyW7… · close_peek 5fF3kE…
-    close_round 2NV9GM… · release 3iXkcz… · finalize 5uobPA…
-    items [1,6,12] · winner 4qwVuf… · Bent Spoon / Dull Peg / Pog Slammer
-  - Warehouse art 40/40 · Proof exhibits stamped · TEST_RUNBOOK.md
-  - Settle note: Model A uses winner SCRIP ATA as escrow; TEE sink = operator ATA
-    (house treasury ATA often unwritable on TEE)
+  - House durationSecs [180, 180, 240] · abandon grace 45s · force_clear_active
+  - UI plain-language pass + first-time guided tour
+  - /history prize chain (vault → winner → packed cards) synced with house clock
+  - /api/history + /api/winnings share loadVaultHistory (same source of truth)
+  - Home Recent prizes + My bids refreshes with nextVaultId / active vault
+  - UI: https://blind-vault-amber.vercel.app
 
-  - Vault 9 Open BF7jyU8Yk7pSRP5GaQ2KqSkFUTw1DmC6oAgChnBPkDXK
-    create 3EsNda… · fill 3yropA… · duration 600s · minBid 10 · items 3
+DONE (wallet):
+  - TEE session clears on disconnect / account switch (no cross-wallet reuse)
+  - TEE token bound to pubkey in zustand + sessionStorage (mismatch → wipe)
+  - Guest-book signMessage only uses injected Phantom when its active key matches
+  - Devnet wallet banner + faucet link when SOL/signing/network looks wrong
+  - Solflare forced to Devnet · clearer tx reject / insufficient-SOL errors
+  - placeBid / buyPeek require connected + signer
 
-UI: Warehouse/Me use collectible creature cards · soft cream landing restored
-  Live no longer auto-routes to Reveal (ended banner + CTA instead)
-CI: green on main (web typecheck+build · program tests)
-LIVE: https://blind-vault-amber.vercel.app
-  /api/house PASS · /api/items batched fetch · Next 15.1.12
+DONE (brand + repo hygiene):
+  - Blindfolded red octopus = project logo (nav, hero, favicon, OG, README)
+  - Favicon / apple-icon regenerated from logo-mark (navy disc, no letterbox)
+  - Judge-facing root README tightened (demo path + MagicBlock table)
+  - Removed Next boilerplate SVGs, local logs/mp4/tmp-video-edit, address dump
+  - Deleted scripts/debug/_wallet-b.json (secret) · gitignore keypairs + _*.ts scratch
+  - Repo map updated · app/README trimmed
+  - Card rarity hover (normal / gold / legendary) via Motion + .is-hot
+  - `next build` PASS (clean .next)
 
-NEXT (4-day locked ship — IN PROGRESS):
-  See docs/SHIP_4DAY.md — north star = 3 judge moments
-  Day 1–3 + UI polish DONE · README rewritten (honest privacy / limits)
-  NOTE: Vault 10 Revealed+abandoned stuck on foreign peek (buyer must Release peek)
-  LEFT: open next lot after peek close · 2-wallet stamp · demo video + submit
-  OUT: VRF · X-ray · quests · themes · leaderboards
+BLITZ DEADLINE: Fri Nov 27, 2026 · 14:00 UTC (21:00 ICT / 19:30 IST)
+  Build week Nov 20–27 · Submit: https://build.magicblock.app/?stage=blitz#submit
+  Source: MagicBlock @magicblock + Solana Stream (21:00 ICT)
 
-HONEST LIMITS: fill = TEE-local entropy (not ER VRF yet) · Devnet/TEE only
+NEXT:
+  - Bid + win one lot to exercise pack popup + history end-to-end
+  - Demo video → Blitz submit before deadline
+  OUT: ER VRF (fill = TEE-local entropy — honest)
 
-WALLET: 4qwVuf…AUy7 · House C7cfsQ… · SCRIP 5RMEdwx… · active Vault 9
+HONEST LIMITS: fill = TEE-local entropy · Devnet/TEE only
+
+WALLET: 4qwVuf…AUy7 · House C7cfsQ… · SCRIP 5RMEdwx…
 ```
