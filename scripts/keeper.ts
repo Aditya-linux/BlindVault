@@ -132,18 +132,59 @@ async function main() {
 
       if (now >= Number(vault.deadlineTs)) {
         const bidCount = Number(vault.bidCount);
-        const grace = 45;
-        const pastGrace = now >= Number(vault.deadlineTs) + grace;
-        // Only use BIDDERS when explicitly set — defaulting to the operator
-        // wallet made end_auction probe a non-bid account ("No discriminator").
-        const bidderKeys = (process.env.BIDDERS ?? "")
+        // Empty lots: abandon quickly. Lots with bids: NEVER force-abandon on a
+        // short timer — that stole winners. Wait for bidder End lot / BIDDERS,
+        // or operator's own bid PDA when they are the only bidder.
+        const emptyGrace = 45;
+        const bidWaitSecs = Number(process.env.BID_END_WAIT_SECS ?? 1800);
+        const pastEmptyGrace = now >= Number(vault.deadlineTs) + emptyGrace;
+        const pastBidWait = now >= Number(vault.deadlineTs) + bidWaitSecs;
+        const forceAbandon =
+          process.env.FORCE_ABANDON === "1" ||
+          (bidCount === 0 && pastEmptyGrace) ||
+          (bidCount > 0 && pastBidWait && process.env.FORCE_ABANDON_BIDS === "1");
+
+        const envBidders = (process.env.BIDDERS ?? "")
           .split(",")
           .map((s) => s.trim())
           .filter(Boolean)
           .map((s) => new PublicKey(s));
 
-        if (bidCount > 0 && bidderKeys.length === bidCount) {
-          const remaining = bidderKeys.map((bidder) => {
+        // Auto-include operator when their bid PDA exists (demo-bid / house tests).
+        // Use getAccountInfo — typed fetch can fail on PER ACL edge cases.
+        const candidateBidders = [...envBidders];
+        if (bidCount > 0) {
+          const opBid = PublicKey.findProgramAddressSync(
+            [
+              Buffer.from("bid"),
+              vaultPk.toBuffer(),
+              wallet.publicKey.toBuffer(),
+            ],
+            program.programId,
+          )[0];
+          const opInfo = await teeConn.getAccountInfo(opBid);
+          if (opInfo && opInfo.data.length > 8) {
+            if (!candidateBidders.some((k) => k.equals(wallet.publicKey))) {
+              candidateBidders.push(wallet.publicKey);
+              console.log("end_auction: found operator bid PDA");
+            }
+          }
+        }
+
+        if (bidCount === 0) {
+          try {
+            const sig = await (teeProgram.methods as any)
+              .endAuction()
+              .accounts({ vault: vaultPk })
+              .remainingAccounts([])
+              .rpc();
+            console.log("end_auction (no bids)", sig);
+            return;
+          } catch (e) {
+            console.log("end_auction fail", String(e).slice(0, 160));
+          }
+        } else if (candidateBidders.length === bidCount) {
+          const remaining = candidateBidders.map((bidder) => {
             const bid = PublicKey.findProgramAddressSync(
               [Buffer.from("bid"), vaultPk.toBuffer(), bidder.toBuffer()],
               program.programId,
@@ -161,28 +202,14 @@ async function main() {
           } catch (e) {
             console.log("end_auction fail", String(e).slice(0, 160));
           }
-        } else if (bidCount > 0) {
-          console.log(
-            pastGrace
-              ? `end_auction blocked by private bid (bidCount=${bidCount}) — force_abandon`
-              : `end_auction wait — need BIDDERS=… or bidder End lot (bidCount=${bidCount}); grace ${grace}s`,
-          );
         } else {
-          try {
-            const sig = await (teeProgram.methods as any)
-              .endAuction()
-              .accounts({ vault: vaultPk })
-              .remainingAccounts([])
-              .rpc();
-            console.log("end_auction (no bids)", sig);
-            return;
-          } catch (e) {
-            console.log("end_auction fail", String(e).slice(0, 160));
-          }
+          console.log(
+            `end_auction wait — need BIDDERS=… or each bidder taps End lot (have ${candidateBidders.length}/${bidCount} keys); wait ${bidWaitSecs}s before optional FORCE_ABANDON_BIDS`,
+          );
         }
 
-        // Stuck Open past grace (private bid ACL / missing BIDDERS) → house escape hatch.
-        if (pastGrace) {
+        // Escape hatch: empty lots after short grace, or explicit FORCE_ABANDON*.
+        if (forceAbandon) {
           try {
             const sig = await (teeProgram.methods as any)
               .forceAbandonStale()
@@ -376,6 +403,7 @@ async function main() {
         return;
       }
 
+      let closedOk = false;
       try {
         const closeSig = await (teeProgram.methods as any)
           .closeRound()
@@ -393,13 +421,15 @@ async function main() {
           })
           .rpc();
         console.log("close_round", closeSig);
+        closedOk = true;
       } catch (e) {
         console.log("close_round skip", String(e).slice(0, 200));
       }
 
-      // Abandoned rounds skip undelegate on TEE — always clear active so the
-      // next Open lot can start (Devnet auto-round).
-      if (Boolean(vault.abandoned)) {
+      // Abandoned rounds skip undelegate. Also clear active if MagicIntent
+      // close_round flakes (0xa0000000) after settle so the next Open lot
+      // can start — winner already settled SCRIP; finalize retries later.
+      if (Boolean(vault.abandoned) || (!closedOk && hasWinner && closedBids >= bidCount)) {
         try {
           const clearSig = await (program.methods as any)
             .forceClearActive()
@@ -409,7 +439,12 @@ async function main() {
               vault: vaultPk,
             })
             .rpc();
-          console.log("force_clear_active", clearSig);
+          console.log(
+            closedOk
+              ? "force_clear_active"
+              : "force_clear_active (close_round blocked — next lot unblocked)",
+            clearSig,
+          );
         } catch (clearErr) {
           console.log(
             "force_clear_active fail",

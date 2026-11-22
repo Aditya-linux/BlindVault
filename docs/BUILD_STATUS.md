@@ -39,11 +39,20 @@ BLITZ DEADLINE: Fri Nov 27, 2026 · 14:00 UTC (21:00 ICT / 19:30 IST)
   Source: MagicBlock @magicblock + Solana Stream (21:00 ICT)
 
 NEXT:
-  - Bid + win one lot to exercise pack popup + history end-to-end
   - Demo video → Blitz submit before deadline
   OUT: ER VRF (fill = TEE-local entropy — honest)
 
-HONEST LIMITS: fill = TEE-local entropy · Devnet/TEE only
+DONE (wind-up):
+  - Keeper never force-abandons lots with bids on a 45s timer (was stealing wins)
+  - Operator bid PDA auto-detected for end_auction when house is the sole bidder
+  - Loser/abandoned “Reclaim my SCRIP” (refund_bid) on Live + Reveal (bidder must sign)
+  - Second-bid blocked before Phantom + friendly copy; TEE simulation note
+  - e2e-win-round.ts happy path (soft-ok for Windows null child exit)
+  - Live proof lot 43: bid→end→reveal→settle → History/Me items [8,0,7]
+    (close_round MagicIntent 0xa0000000 → force_clear; next Open unblocked)
+  - Lot 44 Open ~8m; house durationSecs restored [480,480,600]; auto-round running
+
+HONEST LIMITS: fill = TEE-local entropy · Devnet/TEE only · loser refund needs bidder online while Revealed · close_round TEE flake mitigated by force_clear
 
 WALLET: 4qwVuf…AUy7 · House C7cfsQ… · SCRIP 5RMEdwx…
 ```

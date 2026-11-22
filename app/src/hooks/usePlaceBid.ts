@@ -55,6 +55,28 @@ export function usePlaceBid(vault: DecodedVault | null | undefined) {
         if (!token) throw new Error("TEE guest book signature required");
 
         const amountRaw = BigInt(Math.round(amountScrip * 1_000_000));
+        const vaultPk = new PublicKey(vault.publicKey);
+        const bid = bidPda(vaultPk, publicKey);
+        const conn = teeConnection(token);
+        const program = getProgram(conn, {
+          publicKey,
+          signTransaction: async (tx) => signTransaction(tx as never) as never,
+          signAllTransactions: async (txs) =>
+            Promise.all(txs.map((tx) => signTransaction(tx as never))) as never,
+        });
+
+        // One bid per wallet — refuse before any Phantom popup.
+        try {
+          await (program.account as any).bid.fetch(bid);
+          throw new Error(
+            "You already placed a sealed bid on this lot — one bid per wallet.",
+          );
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          if (msg.includes("already placed a sealed bid")) throw e;
+          // AccountMissing / fetch fail → first bid path continues
+        }
+
         const housePk = new PublicKey(vault.house);
         const programSol = getProgram(connection, {
           publicKey,
@@ -97,15 +119,6 @@ export function usePlaceBid(vault: DecodedVault | null | undefined) {
           { vaultId: String(vault.id), label: "delegateSpl SCRIP for bid" },
         );
 
-        const conn = teeConnection(token);
-        const program = getProgram(conn, {
-          publicKey,
-          signTransaction: async (tx) => signTransaction(tx as never) as never,
-          signAllTransactions: async (txs) =>
-            Promise.all(txs.map((tx) => signTransaction(tx as never))) as never,
-        });
-        const vaultPk = new PublicKey(vault.publicKey);
-        const bid = bidPda(vaultPk, publicKey);
         const amount = new BN(amountRaw.toString());
 
         const placeIx = await (program.methods as any)
@@ -144,12 +157,11 @@ export function usePlaceBid(vault: DecodedVault | null | undefined) {
           },
         );
         setLastSig(result.sig);
-        void qc.invalidateQueries({ queryKey: ["vault", vault.publicKey] });
-        void qc.invalidateQueries({ queryKey: ["my-bid", vault.publicKey] });
+        await qc.invalidateQueries({ queryKey: ["vault", vault.publicKey] });
+        await qc.invalidateQueries({ queryKey: ["my-bid"] });
         return result;
       } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        setError(msg);
+        setError(friendlyBidError(e));
         return null;
       } finally {
         setBusy(false);
@@ -167,4 +179,24 @@ export function usePlaceBid(vault: DecodedVault | null | undefined) {
   );
 
   return { placeBid, busy, error, lastSig };
+}
+
+function friendlyBidError(e: unknown): string {
+  const msg = e instanceof Error ? e.message : String(e);
+  const lower = msg.toLowerCase();
+  if (lower.includes("already placed a sealed bid")) return msg;
+  if (
+    lower.includes("already") &&
+    (lower.includes("bid") || lower.includes("in use") || lower.includes("exists"))
+  ) {
+    return "You already placed a sealed bid on this lot — one bid per wallet.";
+  }
+  if (
+    lower.includes("invalid account data") ||
+    lower.includes("simulation failed") ||
+    lower.includes("custom program error")
+  ) {
+    return "Couldn’t place that bid (likely already locked, or lot closed). Refresh — if you see “Bid locked in”, you’re done.";
+  }
+  return msg;
 }

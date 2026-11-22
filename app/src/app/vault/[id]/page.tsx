@@ -16,6 +16,7 @@ import { usePlaceBid } from "@/hooks/usePlaceBid";
 import { useBuyPeek, useMyPeek } from "@/hooks/useBuyPeek";
 import { useHintPublisher } from "@/hooks/useHintPublisher";
 import { useLotCloser } from "@/hooks/useLotCloser";
+import { useRefundBid } from "@/hooks/useRefundBid";
 import { useTeeAuth } from "@/hooks/useTeeAuth";
 import { useActiveVault } from "@/hooks/useActiveVault";
 import { solanaTxUrl, teeTxUrl } from "@/lib/explorer";
@@ -46,6 +47,7 @@ export default function LiveVaultPage() {
   const { connected } = useWallet();
   useHintPublisher(vaultQ.data);
   const closer = useLotCloser(vaultQ.data);
+  const refund = useRefundBid(vaultQ.data);
 
   const minBid = vaultQ.data
     ? vaultQ.data.minBid / 1_000_000
@@ -209,6 +211,33 @@ export default function LiveVaultPage() {
           {closer.sig && (
             <p className="font-mono text-[11px] text-accent">
               Sent · {closer.sig.slice(0, 12)}…
+            </p>
+          )}
+        </div>
+      )}
+
+      {refund.canRefund && (
+        <div className="bv-card mb-6 flex flex-col gap-3 p-5">
+          <p className="text-[14px] text-steel-deep">
+            {refund.isAbandonedBidder
+              ? "This lot was abandoned. Unlock your SCRIP approve so the next auction can continue."
+              : "You didn’t win — reclaim your sealed SCRIP (you must sign; the house can’t do this for you)."}
+          </p>
+          <Button
+            variant="paper"
+            onClick={() => void refund.refund()}
+            disabled={refund.busy}
+            className="w-fit"
+          >
+            {refund.busy ? "Refunding…" : "Reclaim my SCRIP"}
+          </Button>
+          {refund.error && (
+            <p
+              role="alert"
+              aria-live="polite"
+              className="text-[13px] font-medium text-stamp-red-deep"
+            >
+              {refund.error}
             </p>
           )}
         </div>
@@ -396,6 +425,12 @@ export default function LiveVaultPage() {
               <p className="font-mono text-[11px] text-steel">
                 Minimum {minBid} · one bid only
               </p>
+              <p className="rounded-xl border border-line bg-mist/80 px-3 py-2 text-[12px] leading-snug text-steel-deep">
+                Phantom may show a red “simulation reverted / Confirm (unsafe)”
+                warning on private TEE bids. That is Phantom checking public
+                Devnet — not MagicBlock. On a first bid, Confirm is expected;
+                your SCRIP only locks if the TEE tx succeeds.
+              </p>
               <Button
                 size="lg"
                 onClick={() => void place.placeBid(amount)}
@@ -416,7 +451,7 @@ export default function LiveVaultPage() {
             <p
               role="alert"
               aria-live="polite"
-              className="font-mono text-[12px] text-stamp-red-deep"
+              className="text-[13px] font-medium text-stamp-red-deep"
             >
               {place.error}
             </p>

@@ -16,6 +16,7 @@ import {
 import { useMyPeek } from "@/hooks/useBuyPeek";
 import { useClosePeek } from "@/hooks/useClosePeek";
 import { usePackPopup } from "@/hooks/usePackPopup";
+import { useRefundBid } from "@/hooks/useRefundBid";
 import { MotionNavLink, PageEnter, soft, motion } from "@/components/motion";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
@@ -34,6 +35,7 @@ export default function RevealPage() {
   const itemsQ = useItemsOnChain();
   const myPeek = useMyPeek(vaultPk);
   const closePeek = useClosePeek(vaultPk, id);
+  const refund = useRefundBid(vaultQ.data);
   const [skipAnim, setSkipAnim] = useState(false);
   const [replayKey, setReplayKey] = useState(0);
 
@@ -122,6 +124,33 @@ export default function RevealPage() {
                 </li>
               ))}
             </ul>
+          )}
+        </div>
+      )}
+
+      {refund.canRefund && (
+        <div className="bv-card flex flex-col gap-3 p-5">
+          <p className="text-[14px] text-steel-deep">
+            {refund.isAbandonedBidder
+              ? "This lot was abandoned. Reclaim your SCRIP — you must sign; the house can’t unlock a stranger’s sealed bid."
+              : "You didn’t win. Reclaim your sealed SCRIP now (while status is Revealed). You must sign — the crank can’t refund you."}
+          </p>
+          <Button
+            variant="paper"
+            onClick={() => void refund.refund()}
+            disabled={refund.busy}
+            className="w-fit"
+          >
+            {refund.busy ? "Refunding…" : "Reclaim my SCRIP"}
+          </Button>
+          {refund.error && (
+            <p
+              role="alert"
+              aria-live="polite"
+              className="text-[13px] font-medium text-stamp-red-deep"
+            >
+              {refund.error}
+            </p>
           )}
         </div>
       )}
