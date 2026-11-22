@@ -42,7 +42,7 @@ export function NextBidWindow({
         ? "You can claim SCRIP again"
         : "SCRIP cooldown"
       : getReady || atZero
-        ? "No open bidding yet — watch Home for Join"
+        ? "Still wrapping up — Join appears on Home when the next lot is live"
         : lotReason
           ? "This lot closed — next bidding window next"
           : "Waiting for the next auction";
@@ -53,16 +53,16 @@ export function NextBidWindow({
         ? "Claim free SCRIP, then join a live lot."
         : "Free SCRIP needs a short cooldown between claims."
       : getReady || atZero
-        ? `Bidding is not open right now. When a new lot goes live, Home shows “Join lot · bid now” (~${formatMinutesLabel(typicalDurationSecs)} each). Stay ready on Paddle.`
+        ? `The estimate hit zero, but bidding is not open on this page. Go to Home — when you see “Join lot · bid now”, tap it (~${formatMinutesLabel(typicalDurationSecs)} each). The timer will not restart.`
         : lotReason
-          ? `The bid clock hit zero. The operator is closing this lot, then opening the next (~${formatMinutesLabel(typicalDurationSecs)}). Use that time to finish wallet + SCRIP setup.`
+          ? `The bid clock hit zero. Closing this lot takes about a minute, then the next opens (~${formatMinutesLabel(typicalDurationSecs)}). Finish wallet + SCRIP on Paddle, then watch Home for Join — don’t wait on this timer alone.`
           : `No live auction yet. When one opens, Home shows Join. Auctions run about ${formatMinutesLabel(typicalDurationSecs)}.`;
 
   const clockCaption =
     getReady || atZero
-      ? "Almost open — watch for Join"
+      ? "Go to Home for Join"
       : (timerLabel ??
-        (reason === "faucet" ? "Claim again in" : "Next bid in"));
+        (reason === "faucet" ? "Claim again in" : "Estimate · next lot"));
 
   return (
     <div

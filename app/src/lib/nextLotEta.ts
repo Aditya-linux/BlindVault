@@ -4,14 +4,10 @@ import type { VaultStatusName } from "@/lib/types";
 export const SETTLEMENT_BUDGET_SECS = 90;
 
 /**
- * One-shot soft reopen window after the primary ETA expires.
- * Pinned once — never `now + N` on every render (that caused 30↔27 loops).
+ * @deprecated Soft rolls removed — they restarted the “next bid” clock
+ * without unlocking Join. Kept for any residual imports.
  */
-/**
- * Soft reopen window after the primary ETA — rolls forward in the UI so the
- * next-bid clock never freezes at 00:00 while the keeper opens the next lot.
- */
-export const SOFT_REOPEN_SECS = 45;
+export const SOFT_REOPEN_SECS = 0;
 
 /**
  * Seconds remaining in the settlement budget after the lot clock hits zero.

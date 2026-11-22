@@ -49,6 +49,28 @@ export default function LiveVaultPage() {
   const closer = useLotCloser(vaultQ.data);
   const refund = useRefundBid(vaultQ.data);
 
+  // When this lot is done, the house may already have a *new* Open lot —
+  // staying here with a “next bid” clock looked like bidding restarted on
+  // this page. Detect the live lot and push a Join CTA.
+  const houseActivePk = active.data?.activeVault?.toBase58() ?? null;
+  const liveLotId =
+    active.data && houseActivePk && active.data.nextVaultId > 1
+      ? active.data.nextVaultId - 1
+      : null;
+  const otherLiveLot =
+    liveLotId != null &&
+    liveLotId !== id &&
+    Boolean(houseActivePk) &&
+    houseActivePk !== vaultPk;
+  const otherVaultPk = useMemo(
+    () =>
+      otherLiveLot && liveLotId
+        ? vaultPda(house, liveLotId).toBase58()
+        : null,
+    [otherLiveLot, liveLotId, house],
+  );
+  const otherLive = useVaultLive(otherVaultPk, otherLiveLot ? liveLotId : null);
+
   const minBid = vaultQ.data
     ? vaultQ.data.minBid / 1_000_000
     : (active.data?.minBid[0] ?? 10_000_000) / 1_000_000;
@@ -78,8 +100,14 @@ export default function LiveVaultPage() {
     active.data?.durationSecs?.[0] ||
     vaultQ.data?.durationSecs ||
     180;
+  const nextOpenForBid =
+    Boolean(otherLiveLot) &&
+    otherLive.data?.status === "Open" &&
+    Boolean(otherLive.data.deadlineTs) &&
+    otherLive.data.deadlineTs > nowTs;
   const nextEta = useStableNextLotEta({
-    enabled: pastDeadline || lotFinished,
+    // Stop the fake “next bid” clock once a real Open lot exists elsewhere.
+    enabled: (pastDeadline || lotFinished) && !nextOpenForBid,
     deadlineTs: vaultQ.data?.deadlineTs,
     status: vaultQ.data?.status,
     nowTs,
@@ -97,6 +125,25 @@ export default function LiveVaultPage() {
 
   return (
     <PageEnter className="bv-stack">
+      {nextOpenForBid && liveLotId != null && (
+        <div className="bv-card flex flex-wrap items-center justify-between gap-3 border-accent/40 bg-[color-mix(in_oklab,var(--color-accent)_12%,transparent)] p-4 sm:p-5">
+          <div>
+            <p className="text-[15px] font-medium text-ink">
+              Lot {liveLotId} is open — you can bid now
+            </p>
+            <p className="mt-1 text-[13px] text-steel-deep">
+              This page is the previous lot. Bidding moved to the new vault.
+            </p>
+          </div>
+          <MotionNavLink
+            href={`/vault/${liveLotId}`}
+            className={cn(buttonVariants({ size: "lg" }))}
+          >
+            Join lot {liveLotId} · bid now
+          </MotionNavLink>
+        </div>
+      )}
+
       {lotFinished && (
         <div className="bv-card flex flex-wrap items-center justify-between gap-3">
           <p className="text-[14px] leading-relaxed text-steel-deep">

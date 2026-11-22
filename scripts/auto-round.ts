@@ -120,7 +120,9 @@ async function main() {
         `[${new Date().toISOString()}] lot ${id} status=${status} left=${left} → keeper`,
       );
       run("scripts/keeper.ts", ["--once"], 120_000);
-      await sleep(6_000);
+      // Short gap so empty-lot settle → next Open is ~1 min, not a long
+      // “timer restarted” wait for humans who already signed TEE.
+      await sleep(2_500);
     } catch (e) {
       // Never die on Helius/TEE timeouts — that left lots Abandoned with
       // endless “next bid” UI and no Open window for users.
