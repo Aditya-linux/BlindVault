@@ -40,73 +40,91 @@ function statusKey(v: { status: Record<string, unknown> }) {
   return Object.keys(v.status)[0] ?? "unknown";
 }
 
+async function sleep(ms: number) {
+  await new Promise((r) => setTimeout(r, ms));
+}
+
 async function main() {
   const { program, wallet } = solanaProvider();
   const housePk = housePda();
   console.log("auto-round · house", housePk.toBase58());
   console.log("operator", wallet.publicKey.toBase58());
+  console.log("auto-round · resilient loop (RPC errors retry, do not exit)");
 
   for (;;) {
-    const house = await (program.account as any).house.fetch(housePk);
-    const active = house.activeVault as PublicKey;
-    const nextId = Number(house.nextVaultId);
-
-    if (active.equals(PublicKey.default)) {
-      console.log(`[${new Date().toISOString()}] no active vault → open next (${nextId})`);
-      run("scripts/open-vault.ts", ["--size", "0"]);
-      await new Promise((r) => setTimeout(r, 8_000));
-      continue;
-    }
-
-    const { token } = await getAuthToken(
-      TEE_RPC,
-      wallet.publicKey,
-      async (m) => nacl.sign.detached(m, wallet.secretKey),
-    );
-    const tee = new Connection(`${TEE_RPC}?token=${token}`, "confirmed");
-    const teeProgram = new Program(
-      idl as Idl,
-      new AnchorProvider(tee, new Wallet(wallet), { commitment: "confirmed" }),
-    );
-
-    let vault: any;
     try {
-      vault = await (teeProgram.account as any).vault.fetch(active);
-    } catch {
-      try {
-        vault = await (program.account as any).vault.fetch(active);
-      } catch (e) {
-        console.log("vault fetch fail", String(e).slice(0, 120));
-        await new Promise((r) => setTimeout(r, 5_000));
+      const house = await (program.account as any).house.fetch(housePk);
+      const active = house.activeVault as PublicKey;
+      const nextId = Number(house.nextVaultId);
+
+      if (active.equals(PublicKey.default)) {
+        console.log(
+          `[${new Date().toISOString()}] no active vault → open next (${nextId})`,
+        );
+        run("scripts/open-vault.ts", ["--size", "0"], 120_000);
+        await sleep(8_000);
         continue;
       }
-    }
 
-    const status = statusKey(vault);
-    const now = Math.floor(Date.now() / 1000);
-    const deadline = Number(vault.deadlineTs);
-    const left = deadline - now;
-    const id = Number(vault.id);
+      const { token } = await getAuthToken(
+        TEE_RPC,
+        wallet.publicKey,
+        async (m) => nacl.sign.detached(m, wallet.secretKey),
+      );
+      const tee = new Connection(`${TEE_RPC}?token=${token}`, "confirmed");
+      const teeProgram = new Program(
+        idl as Idl,
+        new AnchorProvider(tee, new Wallet(wallet), {
+          commitment: "confirmed",
+        }),
+      );
 
-    if (status === "open" && left > 0) {
+      let vault: any;
+      try {
+        vault = await (teeProgram.account as any).vault.fetch(active);
+      } catch {
+        try {
+          vault = await (program.account as any).vault.fetch(active);
+        } catch (e) {
+          console.log("vault fetch fail", String(e).slice(0, 120));
+          await sleep(5_000);
+          continue;
+        }
+      }
+
+      const status = statusKey(vault);
+      const now = Math.floor(Date.now() / 1000);
+      const deadline = Number(vault.deadlineTs);
+      const left = deadline - now;
+      const id = Number(vault.id);
+
+      // Actual bidding window — keep logging so operators know Join is live.
+      if (status === "open" && left > 0) {
+        console.log(
+          `[${new Date().toISOString()}] lot ${id} OPEN · bidding ends in ${left}s`,
+        );
+        await sleep(Math.min(15_000, Math.max(3_000, left * 1000)));
+        continue;
+      }
+
       console.log(
-        `[${new Date().toISOString()}] lot ${id} OPEN · bidding ends in ${left}s`,
+        `[${new Date().toISOString()}] lot ${id} status=${status} left=${left} → keeper`,
       );
-      await new Promise((r) =>
-        setTimeout(r, Math.min(15_000, Math.max(3_000, left * 1000))),
+      run("scripts/keeper.ts", ["--once"], 120_000);
+      await sleep(6_000);
+    } catch (e) {
+      // Never die on Helius/TEE timeouts — that left lots Abandoned with
+      // endless “next bid” UI and no Open window for users.
+      console.error(
+        `[${new Date().toISOString()}] auto-round tick error (retry):`,
+        e instanceof Error ? e.message : String(e).slice(0, 200),
       );
-      continue;
+      await sleep(10_000);
     }
-
-    console.log(
-      `[${new Date().toISOString()}] lot ${id} status=${status} left=${left} → keeper`,
-    );
-    run("scripts/keeper.ts", ["--once"]);
-    await new Promise((r) => setTimeout(r, 6_000));
   }
 }
 
 main().catch((e) => {
-  console.error(e);
+  console.error("auto-round fatal", e);
   process.exit(1);
 });

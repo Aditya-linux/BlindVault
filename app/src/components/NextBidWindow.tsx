@@ -42,9 +42,9 @@ export function NextBidWindow({
         ? "You can claim SCRIP again"
         : "SCRIP cooldown"
       : getReady || atZero
-        ? "Get ready — next lot is almost here"
+        ? "No open bidding yet — watch Home for Join"
         : lotReason
-          ? "Next bidding starts soon"
+          ? "This lot closed — next bidding window next"
           : "Waiting for the next auction";
 
   const body =
@@ -53,9 +53,9 @@ export function NextBidWindow({
         ? "Claim free SCRIP, then join a live lot."
         : "Free SCRIP needs a short cooldown between claims."
       : getReady || atZero
-        ? `Stay on this page. When a new lot opens, tap Join. Each auction runs about ${formatMinutesLabel(typicalDurationSecs)}.`
+        ? `Bidding is not open right now. When a new lot goes live, Home shows “Join lot · bid now” (~${formatMinutesLabel(typicalDurationSecs)} each). Stay ready on Paddle.`
         : lotReason
-          ? `This lot is wrapping up. Finish setup on “Set up to bid” while you wait. New auctions run about ${formatMinutesLabel(typicalDurationSecs)}.`
+          ? `The bid clock hit zero. The operator is closing this lot, then opening the next (~${formatMinutesLabel(typicalDurationSecs)}). Use that time to finish wallet + SCRIP setup.`
           : `No live auction yet. When one opens, Home shows Join. Auctions run about ${formatMinutesLabel(typicalDurationSecs)}.`;
 
   const clockCaption =

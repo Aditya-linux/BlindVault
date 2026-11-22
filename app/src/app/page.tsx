@@ -32,12 +32,13 @@ export default function LotPage() {
     status === "Closed" ||
     status === "Settled" ||
     status === "Abandoned";
-  const open = status === "Open" || status === "Ended";
   const pastDeadline =
     Boolean(live.data?.deadlineTs) &&
     live.data!.deadlineTs > 0 &&
     nowTs >= live.data!.deadlineTs;
-  const biddingClosed = !hasLot || finished || pastDeadline;
+  /** Only true while the lot is Open and the clock still has time — Join must mean “you can bid”. */
+  const openForBid = status === "Open" && !pastDeadline;
+  const biddingClosed = !hasLot || finished || pastDeadline || !openForBid;
   const typicalSecs =
     data?.durationSecs?.[live.data?.size ?? 0] ||
     data?.durationSecs?.[0] ||
@@ -116,13 +117,13 @@ export default function LotPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.65, delay: 0.28, ease: [0.22, 1, 0.36, 1] }}
         >
-          {hasLot && finished ? (
+          {hasLot && openForBid ? (
             <>
               <MotionNavLink
-                href={`/vault/${vaultId}/reveal`}
+                href={`/vault/${vaultId}`}
                 className={cn(buttonVariants({ size: "lg" }))}
               >
-                See what was inside · lot {vaultId}
+                Join lot {vaultId} · bid now
               </MotionNavLink>
               <MotionNavLink
                 href="/paddle"
@@ -131,13 +132,13 @@ export default function LotPage() {
                 Set up to bid
               </MotionNavLink>
             </>
-          ) : hasLot && open ? (
+          ) : hasLot && finished ? (
             <>
               <MotionNavLink
-                href={`/vault/${vaultId}`}
+                href={`/vault/${vaultId}/reveal`}
                 className={cn(buttonVariants({ size: "lg" }))}
               >
-                Join lot {vaultId}
+                See what was inside · lot {vaultId}
               </MotionNavLink>
               <MotionNavLink
                 href="/paddle"
@@ -195,15 +196,17 @@ export default function LotPage() {
             ? "Loading live auction…"
             : isError
               ? `Couldn’t load auction · ${error instanceof Error ? error.message.slice(0, 80) : "try refresh"}`
-              : hasLot && finished
-                ? `Lot ${vaultId} finished${live.data?.abandoned ? " · no winner" : ""} · next auction soon`
-                : hasLot && pastDeadline && status === "Open"
-                  ? `Lot ${vaultId} · bidding closed · wrapping up`
-                  : hasLot
-                    ? `Lot ${vaultId} · ${status ?? "…"} · ~${formatMinutesLabel(typicalSecs)} per auction`
-                    : data
-                      ? `${data.itemCount} cards in the warehouse · waiting for next auction`
-                      : "Auction house not ready yet"}
+              : hasLot && openForBid
+                ? `Lot ${vaultId} is OPEN — you can bid now · ~${formatMinutesLabel(typicalSecs)} left on the clock`
+                : hasLot && finished
+                  ? `Lot ${vaultId} finished${live.data?.abandoned ? " · no winner" : ""} · next auction soon`
+                  : hasLot && pastDeadline && status === "Open"
+                    ? `Lot ${vaultId} · bidding closed · wrapping up`
+                    : hasLot
+                      ? `Lot ${vaultId} · ${status ?? "…"} · ~${formatMinutesLabel(typicalSecs)} per auction`
+                      : data
+                        ? `${data.itemCount} cards in the warehouse · waiting for next auction`
+                        : "Auction house not ready yet"}
         </motion.p>
         </motion.div>
       </section>

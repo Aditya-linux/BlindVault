@@ -6,7 +6,10 @@ HACK: Solana Blitz v10 · Entertainment Finance · submit build.magicblock.app/?
 
 DONE (live Devnet/TEE):
   - Program E9UmQYi4gTHyyQ3SK5B4UCpewBnUBFrEc5NqkkAjr42h
-  - House durationSecs [180, 180, 240] · abandon grace 45s · force_clear_active
+  - House durationSecs [480, 480, 600] (~8m) so humans can wallet+TEE+bid
+  - auto-round resilient (RPC timeouts retry — no silent die on Abandoned)
+  - Home Join only when Open AND clock remaining (“bid now”)
+  - abandon grace 45s · force_clear_active
   - UI plain-language pass + first-time guided tour
   - /history prize chain (vault → winner → packed cards) synced with house clock
   - /api/history + /api/winnings share loadVaultHistory (same source of truth)
