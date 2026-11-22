@@ -3,11 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { hintCopy } from "@/lib/hints";
 import { sizeLabel, shortAddr } from "@/lib/format";
 import { housePda, vaultPda } from "@/lib/pdas";
 import { Countdown } from "@/components/Countdown";
-import { NextBidWindow } from "@/components/NextBidWindow";
 import { VaultHints } from "@/components/VaultHints";
 import { useVaultLive } from "@/hooks/useVaultLive";
 import { useHintsLive } from "@/hooks/useHintsLive";
@@ -19,7 +17,7 @@ import { useLotCloser } from "@/hooks/useLotCloser";
 import { useRefundBid } from "@/hooks/useRefundBid";
 import { useTeeAuth } from "@/hooks/useTeeAuth";
 import { useActiveVault } from "@/hooks/useActiveVault";
-import { solanaTxUrl, teeTxUrl } from "@/lib/explorer";
+import { teeTxUrl } from "@/lib/explorer";
 import {
   MotionNavLink,
   PageEnter,
@@ -55,9 +53,6 @@ export default function LiveVaultPage() {
   const closer = useLotCloser(vaultQ.data);
   const refund = useRefundBid(vaultQ.data);
 
-  // When this lot is done, the house may already have a *new* Open lot —
-  // staying here with a “next bid” clock looked like bidding restarted on
-  // this page. Detect the live lot and push a Join CTA.
   const houseActivePk = active.data?.activeVault?.toBase58() ?? null;
   const liveLotId =
     active.data && houseActivePk && active.data.nextVaultId > 1
@@ -82,6 +77,7 @@ export default function LiveVaultPage() {
     : (active.data?.minBid[0] ?? 10_000_000) / 1_000_000;
   const peekFeeScr = vaultQ.data ? vaultQ.data.peekFee / 1_000_000 : 0;
   const [amount, setAmount] = useState(10);
+  const [showTeeNote, setShowTeeNote] = useState(false);
 
   useEffect(() => {
     setAmount((prev) => (prev < minBid ? minBid : prev));
@@ -94,13 +90,13 @@ export default function LiveVaultPage() {
     vaultQ.data?.status === "Abandoned";
 
   const hints = hintsQ.data?.hints ?? [];
-  const released = hints.filter((h) => h.released);
   const nowTs = useNowSecs();
   const pastDeadline =
     Boolean(vaultQ.data?.deadlineTs) &&
     vaultQ.data!.deadlineTs > 0 &&
     nowTs >= vaultQ.data!.deadlineTs;
-  // Prefer house timing for “new lots” copy — this vault may still be an old 10m lot.
+  const openForBid =
+    vaultQ.data?.status === "Open" && !pastDeadline;
   const typicalSecs =
     active.data?.durationSecs?.[vaultQ.data?.size ?? 0] ||
     active.data?.durationSecs?.[0] ||
@@ -112,13 +108,13 @@ export default function LiveVaultPage() {
     Boolean(otherLive.data.deadlineTs) &&
     otherLive.data.deadlineTs > nowTs;
   const nextEta = useStableNextLotEta({
-    // Stop the fake “next bid” clock once a real Open lot exists elsewhere.
     enabled: (pastDeadline || lotFinished) && !nextOpenForBid,
     deadlineTs: vaultQ.data?.deadlineTs,
     status: vaultQ.data?.status,
     nowTs,
     vaultId: id,
   });
+
   const statusLabel = vaultQ.isLoading
     ? "Loading…"
     : vaultQ.isError
@@ -126,478 +122,408 @@ export default function LiveVaultPage() {
       : !vaultQ.data
         ? "Unavailable"
         : pastDeadline && vaultQ.data.status === "Open"
-          ? "Ended (clock)"
+          ? "Bidding closed"
           : vaultQ.data.status;
 
+  const metaLine = [
+    vaultQ.data ? sizeLabel(vaultQ.data.size) : null,
+    vaultQ.data
+      ? `${vaultQ.data.itemCount} sealed card${vaultQ.data.itemCount === 1 ? "" : "s"}`
+      : null,
+    `${vaultQ.data?.bidCount ?? 0} bid${(vaultQ.data?.bidCount ?? 0) === 1 ? "" : "s"}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  // One priority strip — never stack Join + Results + NextBid + Claim.
+  const priority: "join" | "claim" | "refund" | "wait" | "results" | null =
+    nextOpenForBid && liveLotId != null
+      ? "join"
+      : closer.needsAction
+        ? "claim"
+        : refund.canRefund
+          ? "refund"
+          : pastDeadline &&
+              vaultQ.data?.status === "Open" &&
+              (vaultQ.data?.bidCount ?? 0) > 0 &&
+              !closer.needsAction
+            ? "wait"
+            : lotFinished
+              ? "results"
+              : null;
+
   return (
-    <PageEnter className="bv-stack">
-      {nextOpenForBid && liveLotId != null && (
-        <div className="bv-card flex flex-wrap items-center justify-between gap-3 border-accent/40 bg-[color-mix(in_oklab,var(--color-accent)_12%,transparent)] p-4 sm:p-5">
+    <PageEnter className="mx-auto flex w-full max-w-5xl flex-col gap-10 sm:gap-12">
+      {priority === "join" && liveLotId != null && (
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-accent/30 pb-6">
           <div>
-            <p className="text-[15px] font-medium text-ink">
-              Lot {liveLotId} is open — you can bid now
+            <p className="font-display text-2xl tracking-[-0.03em] text-ink">
+              Lot {liveLotId} is live
             </p>
-            <p className="mt-1 text-[13px] text-steel-deep">
-              This page is the previous lot. Bidding moved to the new vault.
+            <p className="mt-1 text-[14px] text-steel-deep">
+              This page is finished. Bid on the open vault.
             </p>
           </div>
           <MotionNavLink
             href={`/vault/${liveLotId}`}
             className={cn(buttonVariants({ size: "lg" }))}
           >
-            Join lot {liveLotId} · bid now
+            Join lot {liveLotId}
           </MotionNavLink>
         </div>
       )}
 
-      {lotFinished && (
-        <div className="bv-card flex flex-wrap items-center justify-between gap-3">
-          <p className="text-[14px] leading-relaxed text-steel-deep">
-            This auction is over — see what was inside and who won.
-          </p>
-          <MotionNavLink
-            href={`/vault/${params.id}/reveal`}
-            className={cn(buttonVariants({ size: "sm" }))}
-          >
-            See results
-          </MotionNavLink>
-        </div>
-      )}
-
-      <header className="flex flex-wrap items-end justify-between gap-4 sm:gap-6">
-        <div>
-          <p className="text-[13px] font-medium text-steel-deep">Live auction</p>
-          <h1 className="mt-1 font-display text-[clamp(2.25rem,6vw,3.25rem)] tracking-[-0.03em] text-ink">
-            Lot {params.id}
-          </h1>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <span className="bv-chip bv-chip-live">{statusLabel}</span>
-            <span className="bv-chip">
-              {vaultQ.data ? sizeLabel(vaultQ.data.size) : "—"}
-            </span>
-            <span className="bv-chip">
-              {vaultQ.data?.bidCount ?? 0} sealed bids
-            </span>
-            <span className="bv-chip">
-              {vaultQ.data?.peeksSold ?? 0} peeks
-            </span>
-            {vaultQ.isError && (
-              <span className="bv-chip text-stamp-red">
-                TEE read failed — retrying
-              </span>
+      {priority === "claim" && (
+        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-accent/30 pb-6">
+          <div className="max-w-md">
+            <p className="font-display text-2xl tracking-[-0.03em] text-ink">
+              {closer.canEnd
+                ? "Claim your pack"
+                : closer.canReveal
+                  ? "Reveal the pack"
+                  : "Save your pack"}
+            </p>
+            <p className="mt-1 text-[14px] text-steel-deep">
+              One tap closes the sealed bid and unlocks Me → Packs you won.
+            </p>
+            {closer.phase && !closer.error && (
+              <p className="mt-2 text-[13px] text-accent">{closer.phase}</p>
+            )}
+            {closer.error && (
+              <p
+                role="alert"
+                className="mt-2 text-[13px] font-medium text-stamp-red-deep"
+              >
+                {closer.error}
+              </p>
             )}
           </div>
-          {pastDeadline && vaultQ.data?.status === "Open" && (
-            <p className="mt-3 rounded-xl border border-stamp-red/35 bg-[#2a1218]/85 px-3 py-2 text-[13px] font-medium text-stamp-red-deep">
-              Bidding is closed. The next auction opens after this lot wraps up
-              — see the timer below.
-            </p>
-          )}
-        </div>
-        <Countdown
-          tone={nextEta ? "next" : "bid"}
-          deadlineTs={
-            nextEta
-              ? nextEta.displayReadyTs
-              : (vaultQ.data?.deadlineTs ?? 0)
-          }
-          activeLabel={nextEta ? "Next bid in" : "Bidding ends in"}
-          expiredLabel={
-            nextEta?.getReady
-              ? "Get ready"
-              : nextEta
-                ? "Opening soon"
-                : "Bidding closed"
-          }
-          getReady={Boolean(nextEta?.getReady)}
-          expiredHint={
-            nextEta
-              ? nextEta.getReady
-                ? `Stay ready — tap Join when the next lot opens (~${formatMinutesLabel(typicalSecs)} each).`
-                : `Next auction timer — wraps up this lot, then opens the next (~${formatMinutesLabel(typicalSecs)} each).`
-              : vaultQ.data
-                ? `When this hits zero, the green next-bid timer starts (~${formatMinutesLabel(typicalSecs)} lots).`
-                : undefined
-          }
-        />
-      </header>
-
-      {(pastDeadline || lotFinished) && (
-        <NextBidWindow
-          className="mb-6"
-          reason={lotFinished ? "settling" : "lot-ended"}
-          typicalDurationSecs={typicalSecs}
-          nextReadyTs={nextEta?.displayReadyTs}
-          getReady={Boolean(nextEta?.getReady)}
-          timerLabel="Bidding opens in"
-          phaseHint={nextEta?.phaseLabel}
-        />
-      )}
-
-      {pastDeadline &&
-        vaultQ.data?.status === "Open" &&
-        (vaultQ.data?.bidCount ?? 0) > 0 &&
-        !closer.needsAction && (
-          <div className="bv-card mb-6 flex flex-col gap-3 border-stamp-red/40 bg-[#2a1218]/85 p-5">
-            <p className="text-[16px] font-medium text-ink">
-              Bidding ended — this lot is waiting on a sealed bidder
-            </p>
-            <p className="text-[14px] text-steel-deep">
-              Connect the wallet that placed the bid, tap Sign in, then Claim my
-              pack. Until then the next auction can’t open (house will clear
-              stuck lots after a few minutes).
-            </p>
-            {!connected ? (
-              <p className="text-[13px] text-stamp-red-deep">
-                Connect wallet (top right) first.
-              </p>
-            ) : !tee.token ? (
-              <Button
-                variant="paper"
-                className="w-fit"
-                onClick={() => void tee.signGuestBook()}
-              >
-                Sign in to claim
-              </Button>
-            ) : null}
-          </div>
-        )}
-
-      {closer.needsAction && (
-        <div className="bv-card mb-6 flex flex-col gap-3 border-accent/45 bg-[color-mix(in_oklab,var(--color-accent)_14%,transparent)] p-5">
-          <p className="text-[16px] font-medium text-ink">
-            {closer.canEnd
-              ? "Timer’s up — claim your pack"
-              : closer.canReveal
-                ? "Reveal the cards you won"
-                : "Finish settlement to save your pack"}
-          </p>
-          <p className="text-[14px] text-steel-deep">
-            {closer.canEnd
-              ? "Sealed bids stay private, so you must tap once to close this lot. That reveals the cards and adds them under Me → Packs you won."
-              : closer.canReveal
-                ? "One more step opens the sealed cards on-chain."
-                : "Confirm settlement so the pack lands on Me and the next auction can open."}
-          </p>
-          <Button
-            size="lg"
-            onClick={() => void closer.run()}
-            disabled={closer.busy}
-            className="w-fit"
-          >
-            {closer.busy
-              ? closer.phase ?? "Working…"
-              : closer.canEnd
-                ? "Claim my pack"
-                : closer.canReveal
-                  ? "Reveal pack"
-                  : "Save pack to Me"}
-          </Button>
-          {closer.phase && !closer.error && (
-            <p className="text-[13px] text-accent">{closer.phase}</p>
-          )}
-          {closer.error && (
-            <p
-              role="alert"
-              aria-live="polite"
-              className="text-[13px] font-medium text-stamp-red-deep"
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              size="lg"
+              onClick={() => void closer.run()}
+              disabled={closer.busy}
             >
-              {closer.error}
-            </p>
-          )}
-          {closer.sig && (
-            <p className="font-mono text-[11px] text-accent">
-              Sent · {closer.sig.slice(0, 12)}…
-            </p>
-          )}
-          {(closer.canSettle || closer.phase?.includes("Pack claimed")) && (
+              {closer.busy
+                ? closer.phase ?? "Working…"
+                : closer.canEnd
+                  ? "Claim my pack"
+                  : closer.canReveal
+                    ? "Reveal pack"
+                    : "Save to Me"}
+            </Button>
             <MotionNavLink
               href={`/vault/${params.id}/reveal`}
               className="text-[13px] font-medium text-accent"
             >
-              See pack / results
+              Results
             </MotionNavLink>
-          )}
+          </div>
         </div>
       )}
 
-      {refund.canRefund && (
-        <div className="bv-card mb-6 flex flex-col gap-3 p-5">
-          <p className="text-[14px] text-steel-deep">
+      {priority === "refund" && (
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-6">
+          <p className="max-w-md text-[14px] text-steel-deep">
             {refund.isAbandonedBidder
-              ? "This lot was abandoned. Unlock your SCRIP approve so the next auction can continue."
-              : "You didn’t win — reclaim your sealed SCRIP (you must sign; the house can’t do this for you)."}
+              ? "This lot was cleared. Reclaim your SCRIP (you must sign)."
+              : "You didn’t win — reclaim your sealed SCRIP."}
           </p>
           <Button
             variant="paper"
             onClick={() => void refund.refund()}
             disabled={refund.busy}
-            className="w-fit"
           >
-            {refund.busy ? "Refunding…" : "Reclaim my SCRIP"}
+            {refund.busy ? "Refunding…" : "Reclaim SCRIP"}
           </Button>
-          {refund.error && (
-            <p
-              role="alert"
-              aria-live="polite"
-              className="text-[13px] font-medium text-stamp-red-deep"
-            >
-              {refund.error}
-            </p>
-          )}
         </div>
       )}
 
-      {pastDeadline &&
-        vaultQ.data?.status === "Open" &&
-        connected &&
-        !closer.hasMyBid && (
-          <p className="mb-6 text-[13px] text-steel-deep">
-            {(vaultQ.data?.bidCount ?? 0) === 0
-              ? `No bids this round — the house crank is closing it so the next ~${formatMinutesLabel(typicalSecs)} auction can open.`
-              : `A sealed bidder (or the house crank) must close this lot before the next auction. Typical lots run ~${formatMinutesLabel(typicalSecs)}.`}
+      {priority === "wait" && (
+        <div className="border-b border-line pb-6">
+          <p className="font-display text-xl tracking-[-0.02em] text-ink">
+            Waiting on the sealed bidder
           </p>
-        )}
-
-      <section className="grid gap-5 md:gap-6 lg:grid-cols-[1.35fr_0.95fr]">
-        <div className="space-y-5">
-          <VaultHints
-            hints={
-              hints.length
-                ? hints
-                : [0, 1, 2, 3].map((kind) => ({
-                    kind,
-                    a: 0,
-                    b: 0,
-                    released: false,
-                    releasedTs: 0,
-                  }))
-            }
-            openTs={vaultQ.data?.openTs}
-            hintTimes={vaultQ.data?.hintTimes}
-            nowTs={nowTs}
-          />
-
-          <article className="bv-card p-5">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-[13px] font-medium text-steel-deep">
-                What’s happening
-              </p>
-              <MotionNavLink
-                href={`/vault/${params.id}/proof`}
-                className="text-[12px] font-medium text-accent"
+          <p className="mt-1 max-w-lg text-[14px] text-steel-deep">
+            Connect the wallet that bid, Sign in, then claim. Or open the live
+            lot when Join appears on Home (~
+            {formatMinutesLabel(typicalSecs)} each).
+          </p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            {!tee.token && connected && (
+              <Button
+                variant="paper"
+                size="sm"
+                onClick={() => void tee.signGuestBook()}
               >
-                Proofs
-              </MotionNavLink>
-            </div>
-            <ul className="mt-3 space-y-2 text-[13px] text-steel-deep">
-              <li>
-                {vaultQ.data?.itemCount ?? "—"} cards inside (hidden until
-                reveal)
-              </li>
-              <li>
-                {vaultQ.data?.bidCount ?? 0} bid
-                {(vaultQ.data?.bidCount ?? 0) === 1 ? "" : "s"} · amounts hidden
-              </li>
-              <li>
-                {vaultQ.data?.peeksSold ?? 0} peek
-                {(vaultQ.data?.peeksSold ?? 0) === 1 ? "" : "s"} bought
-              </li>
-              <li>
-                {released.length}/4 public hints
-                {released.length > 0
-                  ? ` · latest: ${hintCopy(released[released.length - 1]!)}`
-                  : ""}
-              </li>
-              {myBid.data && (
-                <li className="text-accent">Your bid is in</li>
-              )}
-            </ul>
-            <p className="mt-3 font-mono text-[10px] text-steel">
-              Live counts only — no names or bid amounts shown.
+                Sign in
+              </Button>
+            )}
+            <MotionNavLink
+              href="/"
+              className={cn(buttonVariants({ variant: "paper", size: "sm" }))}
+            >
+              Home
+            </MotionNavLink>
+          </div>
+        </div>
+      )}
+
+      <header className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
+        <div>
+          <p className="text-[13px] font-medium text-steel-deep">
+            {openForBid ? "Live auction" : "Lot archive"}
+          </p>
+          <h1 className="mt-1 font-display text-[clamp(2.5rem,7vw,3.75rem)] tracking-[-0.04em] text-ink">
+            Lot {params.id}
+          </h1>
+          <p className="mt-3 text-[14px] text-steel-deep">
+            <span className="text-ink">{statusLabel}</span>
+            {metaLine ? ` · ${metaLine}` : ""}
+            {myBid.data ? " · your bid is in" : ""}
+          </p>
+          {priority === "results" && (
+            <MotionNavLink
+              href={`/vault/${params.id}/reveal`}
+              className="mt-4 inline-block text-[14px] font-medium text-accent"
+            >
+              See what was inside →
+            </MotionNavLink>
+          )}
+          {vaultQ.isError && (
+            <p className="mt-2 text-[13px] text-stamp-red-deep">
+              TEE read failed — retrying
             </p>
-          </article>
+          )}
         </div>
 
-        <aside className="bv-card flex flex-col gap-5 p-6">
-          <div>
-            <h2 className="font-display text-2xl tracking-[-0.02em]">
-              Your bid
-            </h2>
-            <p className="mt-1 text-[13px] text-steel-deep">
-              One bid per wallet. Others can’t see your amount until reveal.
-            </p>
-            <p className="mt-1 font-mono text-[11px] text-steel">
-              {connected ? "Wallet connected" : "Connect a wallet"} ·{" "}
-              {tee.token ? "signed in" : "sign in needed"}
-            </p>
-          </div>
+        {openForBid || (nextEta && !nextOpenForBid) ? (
+          <Countdown
+            tone={nextEta ? "next" : "bid"}
+            deadlineTs={
+              nextEta
+                ? nextEta.displayReadyTs
+                : (vaultQ.data?.deadlineTs ?? 0)
+            }
+            activeLabel={nextEta ? "Next lot ~" : "Ends in"}
+            expiredLabel={
+              nextEta?.getReady
+                ? "Watch Home"
+                : nextEta
+                  ? "Opening…"
+                  : "Closed"
+            }
+            getReady={Boolean(nextEta?.getReady)}
+            expiredHint={
+              nextEta?.getReady
+                ? "Home shows Join when bidding is live."
+                : undefined
+            }
+          />
+        ) : null}
+      </header>
 
-          {!tee.token && (
-            <Button
-              variant="paper"
-              size="sm"
-              onClick={() => void tee.signGuestBook()}
-            >
-              Sign in
-            </Button>
-          )}
+      <section
+        className={cn(
+          "grid gap-10 lg:gap-14",
+          openForBid
+            ? "lg:grid-cols-[1.2fr_0.9fr]"
+            : "lg:grid-cols-1 lg:max-w-2xl",
+        )}
+      >
+        <VaultHints
+          hints={
+            hints.length
+              ? hints
+              : [0, 1, 2, 3].map((kind) => ({
+                  kind,
+                  a: 0,
+                  b: 0,
+                  released: false,
+                  releasedTs: 0,
+                }))
+          }
+          openTs={vaultQ.data?.openTs}
+          hintTimes={vaultQ.data?.hintTimes}
+          nowTs={nowTs}
+        />
 
-          {myBid.data ? (
-            <motion.div
-              className="rounded-2xl bg-chalk-mint px-4 py-4"
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={spring}
-            >
-              <p className="text-[14px] font-medium text-ink">Bid locked in</p>
-              <p className="mt-1 font-mono text-[12px] text-steel-deep">
-                {myBid.data.amount / 1_000_000} SCRIP · #{myBid.data.bidderIndex}
+        {openForBid && (
+          <aside className="flex flex-col gap-6 lg:border-l lg:border-line/70 lg:pl-10">
+            <div>
+              <h2 className="font-display text-[1.65rem] tracking-[-0.03em]">
+                Your bid
+              </h2>
+              <p className="mt-1 text-[13px] text-steel-deep">
+                One sealed bid per wallet · min {minBid} SCRIP
               </p>
-            </motion.div>
-          ) : (
-            <>
-              <label
-                htmlFor="bid-amount"
-                className="block text-[13px] font-medium text-ink"
-              >
-                How much SCRIP?
-                <div className="mt-2 flex items-center gap-2 rounded-2xl border border-line bg-mist px-4 py-3 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[color-mix(in_oklab,var(--color-accent)_55%,transparent)]">
-                  <input
-                    id="bid-amount"
-                    name="bidAmount"
-                    type="number"
-                    inputMode="decimal"
-                    autoComplete="off"
-                    spellCheck={false}
-                    min={minBid}
-                    step="any"
-                    value={amount}
-                    onChange={(e) => setAmount(Number(e.target.value))}
-                    placeholder={`${minBid}…`}
-                    className="w-full min-w-0 bg-transparent font-mono text-[16px] tabular-nums outline-none"
-                  />
-                  <span className="shrink-0 text-[12px] text-steel-deep">
-                    SCRIP
-                  </span>
-                </div>
-              </label>
-              <p className="font-mono text-[11px] text-steel">
-                Minimum {minBid} · one bid only
+            </div>
+
+            {!connected ? (
+              <p className="text-[14px] text-steel-deep">
+                Connect a Devnet wallet (top right) to bid.
               </p>
-              <p className="rounded-xl border border-line bg-mist/80 px-3 py-2 text-[12px] leading-snug text-steel-deep">
-                Phantom may show a red “simulation reverted / Confirm (unsafe)”
-                warning on private TEE bids. That is Phantom checking public
-                Devnet — not MagicBlock. On a first bid, Confirm is expected;
-                your SCRIP only locks if the TEE tx succeeds.
-              </p>
+            ) : !tee.token ? (
               <Button
-                size="lg"
-                onClick={() => void place.placeBid(amount)}
-                disabled={
-                  place.busy ||
-                  Boolean(myBid.data) ||
-                  !connected ||
-                  pastDeadline ||
-                  vaultQ.data?.status !== "Open"
-                }
+                variant="paper"
+                onClick={() => void tee.signGuestBook()}
+                className="w-fit"
               >
-                {place.busy ? "Placing bid…" : "Place sealed bid"}
+                Sign in to bid
               </Button>
-            </>
-          )}
+            ) : null}
 
-          {place.error && (
-            <p
-              role="alert"
-              aria-live="polite"
-              className="text-[13px] font-medium text-stamp-red-deep"
-            >
-              {place.error}
-            </p>
-          )}
-          {place.lastSig && (
-            <a
-              className="font-mono text-[11px] text-accent underline"
-              href={teeTxUrl(place.lastSig)}
-              target="_blank"
-              rel="noreferrer"
-            >
-              {shortAddr(place.lastSig)}
-            </a>
-          )}
+            {myBid.data ? (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={spring}
+              >
+                <p className="text-[15px] font-medium text-ink">Bid locked in</p>
+                <p className="mt-1 font-mono text-[13px] text-steel-deep">
+                  {myBid.data.amount / 1_000_000} SCRIP
+                </p>
+              </motion.div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                <label
+                  htmlFor="bid-amount"
+                  className="block text-[13px] font-medium text-ink"
+                >
+                  Amount
+                  <div className="mt-2 flex items-center gap-2 border-b border-line pb-2 focus-within:border-accent">
+                    <input
+                      id="bid-amount"
+                      name="bidAmount"
+                      type="number"
+                      inputMode="decimal"
+                      autoComplete="off"
+                      spellCheck={false}
+                      min={minBid}
+                      step="any"
+                      value={amount}
+                      onChange={(e) => setAmount(Number(e.target.value))}
+                      className="w-full min-w-0 bg-transparent font-mono text-[22px] tabular-nums outline-none"
+                    />
+                    <span className="shrink-0 text-[12px] text-steel-deep">
+                      SCRIP
+                    </span>
+                  </div>
+                </label>
 
-          <div className="hairline" />
+                <Button
+                  size="lg"
+                  onClick={() => void place.placeBid(amount)}
+                  disabled={
+                    place.busy ||
+                    Boolean(myBid.data) ||
+                    !connected ||
+                    !tee.token ||
+                    pastDeadline ||
+                    vaultQ.data?.status !== "Open"
+                  }
+                >
+                  {place.busy ? "Placing…" : "Place sealed bid"}
+                </Button>
 
-          <div>
-            <h3 className="font-display text-xl tracking-[-0.02em]">
-              Optional peek
-            </h3>
-            <p className="mt-1 text-[13px] text-steel-deep">
-              {peekFeeScr} SCRIP · see one slot’s rarity & type (only you)
-            </p>
-          </div>
+                <button
+                  type="button"
+                  onClick={() => setShowTeeNote((v) => !v)}
+                  className="self-start text-left text-[12px] text-steel underline-offset-2 hover:text-ink hover:underline"
+                >
+                  {showTeeNote ? "Hide" : "About"} Phantom “unsafe” warning
+                </button>
+                {showTeeNote && (
+                  <p className="text-[12px] leading-relaxed text-steel-deep">
+                    Phantom may show “simulation reverted / Confirm (unsafe)” on
+                    TEE bids — it’s checking public Devnet, not MagicBlock.
+                    Confirm on a first bid; SCRIP only locks if the TEE tx
+                    succeeds.
+                  </p>
+                )}
+              </div>
+            )}
 
-          {myPeek.data ? (
-            <motion.div
-              className="rounded-2xl border border-line bg-mist px-4 py-4"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={soft}
-            >
-              <p className="text-[14px] font-medium">
-                Slot {myPeek.data.slot}
+            {place.error && (
+              <p
+                role="alert"
+                className="text-[13px] font-medium text-stamp-red-deep"
+              >
+                {place.error}
               </p>
-              <p className="mt-1 font-mono text-[12px] text-steel-deep">
-                {myPeek.data.rarityLabel} · {myPeek.data.categoryLabel}
+            )}
+            {place.lastSig && (
+              <a
+                className="font-mono text-[11px] text-accent underline"
+                href={teeTxUrl(place.lastSig)}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {shortAddr(place.lastSig)}
+              </a>
+            )}
+
+            <div className="border-t border-line/70 pt-6">
+              <p className="text-[13px] font-medium text-ink">Peek</p>
+              <p className="mt-1 text-[13px] text-steel-deep">
+                {peekFeeScr} SCRIP · one slot’s rarity, only you see it
               </p>
-            </motion.div>
-          ) : (
-            <Button
-              variant="teal"
-              onClick={() => void peek.buyPeek()}
-                disabled={
-                  peek.busy ||
-                  vaultQ.data?.status !== "Open" ||
-                  pastDeadline ||
-                  !tee.token ||
-                  !connected
-                }
+              {myPeek.data ? (
+                <motion.p
+                  className="mt-3 font-mono text-[13px] text-steel-deep"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={soft}
+                >
+                  Slot {myPeek.data.slot} · {myPeek.data.rarityLabel} ·{" "}
+                  {myPeek.data.categoryLabel}
+                </motion.p>
+              ) : (
+                <Button
+                  variant="paper"
+                  size="sm"
+                  className="mt-3"
+                  onClick={() => void peek.buyPeek()}
+                  disabled={
+                    peek.busy ||
+                    !openForBid ||
+                    !tee.token ||
+                    !connected
+                  }
+                >
+                  {peek.busy ? "Buying…" : "Buy peek"}
+                </Button>
+              )}
+              {peek.error && (
+                <p
+                  role="alert"
+                  className="mt-2 text-[12px] text-stamp-red-deep"
+                >
+                  {peek.error}
+                </p>
+              )}
+            </div>
+
+            <MotionNavLink
+              href={`/vault/${params.id}/proof`}
+              className="text-[12px] font-medium text-steel hover:text-accent"
             >
-              {peek.busy ? "Buying peek…" : "Buy a peek"}
-            </Button>
-          )}
-          {peek.error && (
-            <p
-              role="alert"
-              aria-live="polite"
-              className="font-mono text-[12px] text-stamp-red-deep"
-            >
-              {peek.error}
-            </p>
-          )}
-          {peek.feeSig && (
-            <a
-              className="block font-mono text-[11px] text-accent underline"
-              href={solanaTxUrl(peek.feeSig)}
-              target="_blank"
-              rel="noreferrer"
-            >
-              fee {shortAddr(peek.feeSig)}
-            </a>
-          )}
-          {peek.lastSig && (
-            <a
-              className="block font-mono text-[11px] text-accent underline"
-              href={teeTxUrl(peek.lastSig)}
-              target="_blank"
-              rel="noreferrer"
-            >
-              peek {shortAddr(peek.lastSig)}
-            </a>
-          )}
-        </aside>
+              Proofs
+            </MotionNavLink>
+          </aside>
+        )}
       </section>
+
+      {!openForBid && priority !== "join" && (
+        <p className="text-[13px] text-steel-deep">
+          <MotionNavLink href="/" className="font-medium text-accent">
+            Home
+          </MotionNavLink>
+          {" · "}
+          next lots ~{formatMinutesLabel(typicalSecs)}
+          {nextEta?.phaseLabel ? ` · ${nextEta.phaseLabel}` : ""}
+        </p>
+      )}
     </PageEnter>
   );
 }
