@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import {
+  EPHEMERAL_VAULT_ID,
+  MAGIC_PROGRAM_ID,
   PERMISSION_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
   permissionPdaFromAccount,
@@ -11,18 +13,25 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { teeConnection } from "@/lib/connections";
 import { getProgram } from "@/lib/program";
-import { associatedTokenPda, bidPda } from "@/lib/pdas";
+import {
+  associatedTokenPda,
+  bidPda,
+  contentsPda,
+  housePda,
+  poolLedgerPda,
+} from "@/lib/pdas";
 import { sendEr } from "@/lib/tx";
 import type { DecodedVault } from "@/lib/types";
 import { useTeeAuth } from "./useTeeAuth";
 import { useMyBid } from "./useMyBid";
 import { useActiveVault } from "./useActiveVault";
+import { useNowSecs } from "./useNow";
 
 /**
- * After the lot clock hits zero, the winning bidder must help close:
+ * After the lot clock hits zero, the sealed bidder must help close:
  * private bids are TEE-gated — the house crank cannot read a stranger's bid.
- * This hook ends the auction (and settles if you're the winner) from the
- * connected wallet so the next lot can open.
+ * Flow: end_auction → reveal_contents → settle_winning_bid (sole bidder).
+ * That unlocks pack popup + Me “Packs you won”.
  */
 export function useLotCloser(vault: DecodedVault | null | undefined) {
   const { publicKey, signTransaction } = useWallet();
@@ -30,19 +39,24 @@ export function useLotCloser(vault: DecodedVault | null | undefined) {
   const myBid = useMyBid(vault?.publicKey ?? null);
   const house = useActiveVault();
   const qc = useQueryClient();
+  const nowTs = useNowSecs();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sig, setSig] = useState<string | null>(null);
+  const [phase, setPhase] = useState<string | null>(null);
   const inflight = useRef(false);
-  const autoTried = useRef(false);
+  const autoEndTried = useRef(false);
+  const autoSettleTried = useRef(false);
 
-  const nowTs = Math.floor(Date.now() / 1000);
   const pastDeadline =
     Boolean(vault?.deadlineTs) &&
     vault!.deadlineTs > 0 &&
     nowTs >= vault!.deadlineTs;
   const canEnd =
     vault?.status === "Open" && pastDeadline && Boolean(myBid.data);
+  const canReveal =
+    (vault?.status === "Ended" || vault?.status === "Abandoned") &&
+    Boolean(myBid.data);
   const canSettle =
     vault?.status === "Revealed" &&
     Boolean(publicKey) &&
@@ -55,6 +69,7 @@ export function useLotCloser(vault: DecodedVault | null | undefined) {
     inflight.current = true;
     setBusy(true);
     setError(null);
+    setPhase(null);
     try {
       const t = token ?? (await ensureToken());
       if (!t) throw new Error("Sign the TEE guest book first");
@@ -68,8 +83,12 @@ export function useLotCloser(vault: DecodedVault | null | undefined) {
       const program = getProgram(conn, wallet);
       const vaultPk = new PublicKey(vault.publicKey);
       const bid = bidPda(vaultPk, publicKey);
+      const contents = contentsPda(vaultPk);
+      const poolLedger = poolLedgerPda(housePda());
 
-      if (vault.status === "Open" && pastDeadline) {
+      let status = vault.status;
+
+      if (status === "Open" && pastDeadline) {
         if (!myBid.data) {
           throw new Error(
             "Only a sealed bidder can end this lot (bids stay private).",
@@ -77,9 +96,10 @@ export function useLotCloser(vault: DecodedVault | null | undefined) {
         }
         if (vault.bidCount !== 1) {
           throw new Error(
-            `This lot has ${vault.bidCount} bids — every bidder must be passed to end. Ask the house to crank with BIDDERS=…`,
+            `This lot has ${vault.bidCount} bids — every bidder must help close, or set BIDDERS for the house crank.`,
           );
         }
+        setPhase("Closing bidding…");
         const ix = await (program.methods as any)
           .endAuction()
           .accounts({ vault: vaultPk })
@@ -94,42 +114,80 @@ export function useLotCloser(vault: DecodedVault | null | undefined) {
           { vaultId: String(vault.id), label: "end_auction" },
         );
         setSig(s.sig);
-      } else if (
-        vault.status === "Revealed" &&
-        vault.winner === publicKey.toBase58() &&
-        !vault.abandoned
-      ) {
-        if (!house.data?.scripMint || !house.data.treasury) {
-          throw new Error("House mint not loaded");
-        }
-        const winnerAta = associatedTokenPda(house.data.scripMint, publicKey);
+        status = "Ended";
+      }
+
+      if (status === "Ended" || status === "Abandoned") {
+        setPhase("Revealing pack…");
         const ix = await (program.methods as any)
-          .settleWinningBid()
+          .revealContents()
           .accounts({
-            closer: publicKey,
-            lot: vaultPk,
-            bid,
-            bidPermission: permissionPdaFromAccount(bid),
-            escrow: winnerAta,
-            treasury: house.data.treasury,
+            vault: vaultPk,
+            contents,
+            poolLedger,
+            contentsPermission: permissionPdaFromAccount(contents),
+            ephemeralVault: EPHEMERAL_VAULT_ID,
+            magicProgram: MAGIC_PROGRAM_ID,
             permissionProgram: PERMISSION_PROGRAM_ID,
-            tokenProgram: TOKEN_PROGRAM_ID,
           })
           .instruction();
         const s = await sendEr(
           conn,
           { publicKey, signTransaction },
           [ix],
-          { vaultId: String(vault.id), label: "settle_winning_bid" },
+          { vaultId: String(vault.id), label: "reveal_contents" },
         );
         setSig(s.sig);
+        status = "Revealed";
+      }
+
+      if (status === "Revealed" && !vault.abandoned) {
+        // After end+reveal in one run, winner is this wallet (sole bidder).
+        const isWinner =
+          vault.winner === publicKey.toBase58() ||
+          (vault.status === "Open" && vault.bidCount === 1);
+        if (isWinner) {
+          if (!house.data?.scripMint || !house.data.treasury) {
+            throw new Error("House mint not loaded");
+          }
+          setPhase("Claiming your pack…");
+          const winnerAta = associatedTokenPda(
+            house.data.scripMint,
+            publicKey,
+          );
+          const ix = await (program.methods as any)
+            .settleWinningBid()
+            .accounts({
+              closer: publicKey,
+              lot: vaultPk,
+              bid,
+              bidPermission: permissionPdaFromAccount(bid),
+              escrow: winnerAta,
+              treasury: house.data.treasury,
+              permissionProgram: PERMISSION_PROGRAM_ID,
+              tokenProgram: TOKEN_PROGRAM_ID,
+            })
+            .instruction();
+          const s = await sendEr(
+            conn,
+            { publicKey, signTransaction },
+            [ix],
+            { vaultId: String(vault.id), label: "settle_winning_bid" },
+          );
+          setSig(s.sig);
+          setPhase("Pack claimed — check Me / Packs you won");
+        }
       }
 
       await qc.invalidateQueries({ queryKey: ["vault"] });
       await qc.invalidateQueries({ queryKey: ["my-bid"] });
       await qc.invalidateQueries({ queryKey: ["house"] });
+      await qc.invalidateQueries({ queryKey: ["winnings"] });
+      await qc.invalidateQueries({ queryKey: ["vault-history"] });
+      await qc.invalidateQueries({ queryKey: ["inventory"] });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+      setPhase(null);
     } finally {
       setBusy(false);
       inflight.current = false;
@@ -146,27 +204,32 @@ export function useLotCloser(vault: DecodedVault | null | undefined) {
     qc,
   ]);
 
-  // Auto-kick once only when guest book is already signed — never spawn
-  // surprise Phantom “Sign message” popups from the background.
+  // Auto-kick once per phase when guest book is already signed.
   useEffect(() => {
-    if (!canEnd && !canSettle) return;
-    if (!token) return;
-    if (busy || error || autoTried.current) return;
-    autoTried.current = true;
-    const t = setTimeout(() => {
-      void run();
-    }, 800);
-    return () => clearTimeout(t);
-  }, [canEnd, canSettle, token, busy, error, run]);
+    if (!token || busy || error) return;
+    if (canEnd && !autoEndTried.current) {
+      autoEndTried.current = true;
+      const t = setTimeout(() => void run(), 600);
+      return () => clearTimeout(t);
+    }
+    if ((canSettle || canReveal) && !autoSettleTried.current) {
+      autoSettleTried.current = true;
+      const t = setTimeout(() => void run(), 600);
+      return () => clearTimeout(t);
+    }
+  }, [canEnd, canSettle, canReveal, token, busy, error, run]);
 
   return {
     canEnd,
+    canReveal,
     canSettle,
     busy,
     error,
     sig,
+    phase,
     run,
     pastDeadline,
     hasMyBid: Boolean(myBid.data),
+    needsAction: canEnd || canReveal || canSettle,
   };
 }

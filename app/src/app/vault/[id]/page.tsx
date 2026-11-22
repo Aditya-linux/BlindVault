@@ -228,29 +228,44 @@ export default function LiveVaultPage() {
         />
       )}
 
-      {(closer.canEnd || closer.canSettle) && (
-        <div className="bv-card mb-6 flex flex-col gap-3 p-5">
+      {closer.needsAction && (
+        <div className="bv-card mb-6 flex flex-col gap-3 border-accent/45 bg-[color-mix(in_oklab,var(--color-accent)_14%,transparent)] p-5">
+          <p className="text-[16px] font-medium text-ink">
+            {closer.canEnd
+              ? "Timer’s up — claim your pack"
+              : closer.canReveal
+                ? "Reveal the cards you won"
+                : "Finish settlement to save your pack"}
+          </p>
           <p className="text-[14px] text-steel-deep">
             {closer.canEnd
-              ? "You bid on this lot. Tap below to close bidding so cards can reveal. Your amount stays private."
-              : "You won — confirm settlement so the next auction can open."}
+              ? "Sealed bids stay private, so you must tap once to close this lot. That reveals the cards and adds them under Me → Packs you won."
+              : closer.canReveal
+                ? "One more step opens the sealed cards on-chain."
+                : "Confirm settlement so the pack lands on Me and the next auction can open."}
           </p>
           <Button
+            size="lg"
             onClick={() => void closer.run()}
             disabled={closer.busy}
             className="w-fit"
           >
             {closer.busy
-              ? "Working…"
+              ? closer.phase ?? "Working…"
               : closer.canEnd
-                ? "Close bidding"
-                : "Claim my win"}
+                ? "Claim my pack"
+                : closer.canReveal
+                  ? "Reveal pack"
+                  : "Save pack to Me"}
           </Button>
+          {closer.phase && !closer.error && (
+            <p className="text-[13px] text-accent">{closer.phase}</p>
+          )}
           {closer.error && (
             <p
               role="alert"
               aria-live="polite"
-              className="font-mono text-[11px] text-stamp-red-deep"
+              className="text-[13px] font-medium text-stamp-red-deep"
             >
               {closer.error}
             </p>
@@ -259,6 +274,14 @@ export default function LiveVaultPage() {
             <p className="font-mono text-[11px] text-accent">
               Sent · {closer.sig.slice(0, 12)}…
             </p>
+          )}
+          {(closer.canSettle || closer.phase?.includes("Pack claimed")) && (
+            <MotionNavLink
+              href={`/vault/${params.id}/reveal`}
+              className="text-[13px] font-medium text-accent"
+            >
+              See pack / results
+            </MotionNavLink>
           )}
         </div>
       )}

@@ -6,6 +6,8 @@ import { CollectibleCard } from "@/components/CollectibleCard";
 import { WalletButton } from "@/components/WalletButton";
 import { useActiveVault } from "@/hooks/useActiveVault";
 import { useMyBid } from "@/hooks/useMyBid";
+import { useVaultLive } from "@/hooks/useVaultLive";
+import { useLotCloser } from "@/hooks/useLotCloser";
 import {
   resolveRevealedCards,
   useItemsOnChain,
@@ -46,6 +48,8 @@ export default function MePage() {
   const vaultPk =
     vaultId && hasActive ? vaultPda(housePda(), vaultId).toBase58() : null;
   const myBid = useMyBid(vaultPk);
+  const vaultLive = useVaultLive(vaultPk, vaultId);
+  const closer = useLotCloser(vaultLive.data);
 
   const collection = useMemo(() => {
     const byIndex = new Map<
@@ -184,6 +188,46 @@ export default function MePage() {
         )}
       </section>
 
+      {closer.needsAction && vaultId != null && (
+        <section className="bv-card flex flex-col gap-3 border-accent/45 bg-[color-mix(in_oklab,var(--color-accent)_14%,transparent)] p-6">
+          <h2 className="font-display text-2xl tracking-[-0.02em]">
+            Claim lot {vaultId}
+          </h2>
+          <p className="text-[14px] text-steel-deep">
+            The timer ended. Packs you won only appear after you close the sealed
+            bid (the house can’t open a stranger’s private bid). One tap runs
+            close → reveal → settle.
+          </p>
+          <Button
+            size="lg"
+            className="w-fit"
+            disabled={closer.busy}
+            onClick={() => void closer.run()}
+          >
+            {closer.busy
+              ? closer.phase ?? "Working…"
+              : "Claim my pack"}
+          </Button>
+          {closer.phase && !closer.error && (
+            <p className="text-[13px] text-accent">{closer.phase}</p>
+          )}
+          {closer.error && (
+            <p
+              role="alert"
+              className="text-[13px] font-medium text-stamp-red-deep"
+            >
+              {closer.error}
+            </p>
+          )}
+          <MotionNavLink
+            href={`/vault/${vaultId}/reveal`}
+            className="text-[13px] font-medium text-accent"
+          >
+            Open results page
+          </MotionNavLink>
+        </section>
+      )}
+
       <section className="bv-card p-6">
         <h2 className="font-display text-2xl tracking-[-0.02em]">Your cards</h2>
         <p className="mt-1 text-[13px] text-steel-deep">
@@ -235,7 +279,8 @@ export default function MePage() {
           Packs you won
         </h2>
         <p className="mt-1 text-[13px] text-steel-deep">
-          Lots you won, with the cards you packed.
+          Lots you won, with the cards you packed. Appears after you claim
+          (close → reveal) on a finished lot you bid on.
         </p>
         {connected && winnings.isLoading && (
           <p className="mt-5 text-[14px] text-steel-deep">Loading history…</p>
