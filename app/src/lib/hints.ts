@@ -21,13 +21,13 @@ export function computeHint(
       let best = 0;
       for (let k = 0; k < 5; k++) {
         if (
-          cnt[k] > cnt[best] ||
+          cnt[k]! > cnt[best]! ||
           (cnt[k] === cnt[best] && k < best)
         ) {
           best = k;
         }
       }
-      return { kind, a: best, b: cnt[best] };
+      return { kind, a: best, b: cnt[best]! };
     }
     case 1: {
       const min = Math.min(...items.map((i) => i.rarity));
@@ -48,21 +48,109 @@ export function computeHint(
   }
 }
 
-export function hintCopy(h: HintResult): string {
-  const cats = ["TOYS", "TECH", "CARDS", "COINS", "ODDITIES"];
-  const floors = ["JUNK", "COMMON", "RARE", "EPIC", "LEGENDARY"];
+/** Short label for locked slots / proof board. */
+const CAT_NAMES = ["toys", "tech gadgets", "cards", "coins", "odd finds"];
+const FLOOR_NAMES = ["junk", "common", "rare", "epic", "legendary"];
+
+export type HintPresentation = {
+  kind: number;
+  /** Small eyebrow — what kind of clue */
+  label: string;
+  /** Plain sentence users can understand */
+  headline: string;
+  /** One-line vibe / why it matters */
+  whisper: string;
+};
+
+/** Friendly suspense copy for Live Vault (and Proof checks). */
+export function presentHint(h: HintResult): HintPresentation {
   switch (h.kind) {
-    case 0:
-      return `SMELLS LIKE… ${cats[h.a] ?? "?"} (${h.b} of slots)`;
-    case 1:
-      return h.a === 0
-        ? "SOME JUNK IN THERE"
-        : `NOTHING BELOW ${floors[h.a]}`;
+    case 0: {
+      const cat = CAT_NAMES[h.a] ?? "mystery stuff";
+      const n = h.b;
+      return {
+        kind: 0,
+        label: "Category clue",
+        headline:
+          n <= 1
+            ? `Mostly smells like ${cat}`
+            : `${n} of the slots lean toward ${cat}`,
+        whisper: "Rocco peeked at the shelf labels — not the boxes.",
+      };
+    }
+    case 1: {
+      if (h.a === 0) {
+        return {
+          kind: 1,
+          label: "Quality floor",
+          headline: "There’s at least one junk piece in there",
+          whisper: "Not every box is a trophy — some are filler.",
+        };
+      }
+      const floor = FLOOR_NAMES[h.a] ?? "decent";
+      return {
+        kind: 1,
+        label: "Quality floor",
+        headline: `Nothing weaker than ${floor}`,
+        whisper: "The worst card in this pack still clears that bar.",
+      };
+    }
     case 2:
-      return `APPRAISED ${h.a}–${h.b} SCRIP`;
+      return {
+        kind: 2,
+        label: "Value band",
+        headline: `Appraised around ${h.a}–${h.b} SCRIP`,
+        whisper: "Rough warehouse estimate — not a guarantee you’ll profit.",
+      };
     case 3:
-      return `SOMETHING SHINY: ${h.a ? "YES" : "NO"}`;
+      return {
+        kind: 3,
+        label: "Shiny check",
+        headline: h.a
+          ? "Something shiny is in the pack"
+          : "No shiny or better spotted",
+        whisper: h.a
+          ? "Gold or legendary energy — worth leaning in."
+          : "A quieter lot — still playable, less fireworks.",
+      };
     default:
-      return "—";
+      return {
+        kind: h.kind,
+        label: "Clue",
+        headline: "—",
+        whisper: "",
+      };
   }
 }
+
+/** Compact one-liner (proof board, status chips). */
+export function hintCopy(h: HintResult): string {
+  return presentHint(h).headline;
+}
+
+export const HINT_SLOT_META: {
+  kind: number;
+  label: string;
+  lockedWhisper: string;
+}[] = [
+  {
+    kind: 0,
+    label: "Category clue",
+    lockedWhisper: "What kind of loot dominates the box?",
+  },
+  {
+    kind: 1,
+    label: "Quality floor",
+    lockedWhisper: "How bad can the weakest card be?",
+  },
+  {
+    kind: 2,
+    label: "Value band",
+    lockedWhisper: "Ballpark SCRIP value of everything inside",
+  },
+  {
+    kind: 3,
+    label: "Shiny check",
+    lockedWhisper: "Is there gold or legendary heat?",
+  },
+];

@@ -22,6 +22,7 @@ import {
 } from "@/lib/pdas";
 import { sendEr } from "@/lib/tx";
 import type { DecodedVault } from "@/lib/types";
+import { rememberedBidOnLot } from "@/lib/bidMemory";
 import { useTeeAuth } from "./useTeeAuth";
 import { useMyBid } from "./useMyBid";
 import { useActiveVault } from "./useActiveVault";
@@ -100,12 +101,18 @@ export function useLotCloser(vault: DecodedVault | null | undefined) {
             `This lot has ${vault.bidCount} bids — every bidder must help close, or set BIDDERS for the house crank.`,
           );
         }
-        // Confirm this wallet actually has the sealed bid before ending.
-        try {
-          await (program.account as any).bid.fetch(bid);
-        } catch {
+        // Confirm this wallet owns the sealed bid (TEE ACL — use raw account
+        // info; typed fetch can false-negative on permission edge cases).
+        const bidInfo = await conn.getAccountInfo(bid);
+        if (!bidInfo || bidInfo.data.length < 40) {
+          const remembered = rememberedBidOnLot(
+            publicKey.toBase58(),
+            vault.id,
+          );
           throw new Error(
-            "No sealed bid found for this wallet on this lot. Connect the wallet that bid, Sign in, then Claim again.",
+            remembered
+              ? "This browser remembers your bid, but the TEE can’t see the bid account for this wallet yet. Tap Sign in again (same Phantom account that bid), wait 2s, then Claim."
+              : "No sealed bid found for this wallet on this lot. Switch to the Phantom account that placed the bid, Sign in, then Claim again.",
           );
         }
         setPhase("Closing bidding…");

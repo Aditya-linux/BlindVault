@@ -17,6 +17,7 @@ import { getProgram } from "@/lib/program";
 import { bidPda, permissionPda, associatedTokenPda } from "@/lib/pdas";
 import { sendEr, sendSolana } from "@/lib/tx";
 import type { DecodedVault } from "@/lib/types";
+import { rememberMyBid } from "@/lib/bidMemory";
 import { useTeeAuth } from "./useTeeAuth";
 
 const TEE_VALIDATOR = new PublicKey(
@@ -157,6 +158,7 @@ export function usePlaceBid(vault: DecodedVault | null | undefined) {
           },
         );
         setLastSig(result.sig);
+        rememberMyBid(publicKey.toBase58(), vault.id);
         await qc.invalidateQueries({ queryKey: ["vault", vault.publicKey] });
         await qc.invalidateQueries({ queryKey: ["my-bid"] });
         return result;

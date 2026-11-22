@@ -3,12 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { motion } from "@/components/motion";
 import { hintCopy } from "@/lib/hints";
 import { sizeLabel, shortAddr } from "@/lib/format";
 import { housePda, vaultPda } from "@/lib/pdas";
 import { Countdown } from "@/components/Countdown";
 import { NextBidWindow } from "@/components/NextBidWindow";
+import { VaultHints } from "@/components/VaultHints";
 import { useVaultLive } from "@/hooks/useVaultLive";
 import { useHintsLive } from "@/hooks/useHintsLive";
 import { useMyBid } from "@/hooks/useMyBid";
@@ -20,7 +20,13 @@ import { useRefundBid } from "@/hooks/useRefundBid";
 import { useTeeAuth } from "@/hooks/useTeeAuth";
 import { useActiveVault } from "@/hooks/useActiveVault";
 import { solanaTxUrl, teeTxUrl } from "@/lib/explorer";
-import { MotionNavLink, PageEnter, soft, spring } from "@/components/motion";
+import {
+  MotionNavLink,
+  PageEnter,
+  soft,
+  spring,
+  motion,
+} from "@/components/motion";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { formatMinutesLabel } from "@/lib/formatTime";
@@ -355,36 +361,9 @@ export default function LiveVaultPage() {
 
       <section className="grid gap-5 md:gap-6 lg:grid-cols-[1.35fr_0.95fr]">
         <div className="space-y-5">
-          <article className="bv-card p-6 sm:p-7">
-            <div className="flex items-baseline justify-between gap-3">
-              <h2 className="font-display text-2xl tracking-[-0.02em]">Hints</h2>
-              <span className="font-mono text-[11px] text-steel">
-                {released.length}/4
-              </span>
-            </div>
-
-            <ul className="mt-5 space-y-3">
-              {released.length === 0 && (
-                <li className="rounded-2xl border border-line bg-cardboard/90 px-4 py-3 text-[14px] text-steel-deep">
-                  No public hints yet. Clues unlock automatically as time
-                  passes.
-                </li>
-              )}
-              {released.map((h) => (
-                <motion.li
-                  key={h.kind}
-                  className="rounded-2xl border border-accent/25 bg-[#0a1a33] px-4 py-3.5 text-[14px] leading-relaxed text-ink"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={soft}
-                >
-                  {hintCopy(h)}
-                </motion.li>
-              ))}
-            </ul>
-
-            <ul className="mt-4 space-y-2">
-              {(hints.length
+          <VaultHints
+            hints={
+              hints.length
                 ? hints
                 : [0, 1, 2, 3].map((kind) => ({
                     kind,
@@ -393,29 +372,11 @@ export default function LiveVaultPage() {
                     released: false,
                     releasedTs: 0,
                   }))
-              )
-                .filter((h) => !h.released)
-                .map((h) => (
-                  <li
-                    key={h.kind}
-                    className="flex items-center justify-between rounded-2xl border border-line/80 px-4 py-3 text-[13px] text-steel-deep"
-                  >
-                    <span>
-                      {
-                        ["Value band", "Top tier", "Category mix", "Rarity floor"][
-                          h.kind
-                        ]
-                      }
-                    </span>
-                    <span className="font-mono text-[11px]">
-                      {vaultQ.data
-                        ? `T+${Math.max(0, vaultQ.data.hintTimes[h.kind] - vaultQ.data.openTs)}s`
-                        : "Soon"}
-                    </span>
-                  </li>
-                ))}
-            </ul>
-          </article>
+            }
+            openTs={vaultQ.data?.openTs}
+            hintTimes={vaultQ.data?.hintTimes}
+            nowTs={nowTs}
+          />
 
           <article className="bv-card p-5">
             <div className="flex items-center justify-between gap-3">

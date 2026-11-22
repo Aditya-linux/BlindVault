@@ -139,7 +139,8 @@ async function main() {
         // After this, unblock the house even if the human bidder never taps
         // Claim — otherwise Open windows freeze forever (Blitz demo).
         // Default 3 min; set BID_END_WAIT_SECS / FORCE_ABANDON_BIDS to override.
-        const bidWaitSecs = Number(process.env.BID_END_WAIT_SECS ?? 180);
+        // Give humans ~10 min to tap Claim my pack before clearing the lot.
+        const bidWaitSecs = Number(process.env.BID_END_WAIT_SECS ?? 600);
         const pastEmptyGrace = now >= Number(vault.deadlineTs) + emptyGrace;
         const pastBidWait = now >= Number(vault.deadlineTs) + bidWaitSecs;
         const forceAbandon =
