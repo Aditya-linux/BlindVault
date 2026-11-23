@@ -1,5 +1,9 @@
 # Build Status
 
+## Lot 67 ownership and rollover gate — 2026-11-23
+
+**PASS:** after the winner `3i1YQqPua8Nuzjpm3aQ5Aa34yfooDuXni3Y4Mm5rFn74` signed Claim, `npx tsx scripts/verify-settled-vault.ts 67` exited 0. It verified the base vault is Settled, payment receipt `HdQGSr9RfWVq52Z2XhD3QGLEzFiyRfRzNYNVpcHNNn1r` records 10 SCRIP, Items 11/33/20 have `owner=winner`, and each corresponding winner SPL ATA balance equals one. The shared pool is currently delegated to the next round, as expected. The manually triggered keeper closed the peek; the watchdog completed the round and opened lot 68 (`HPTHcNvA6eUn2CZQdVdwd38Lt2YRLwxqMxvMFtKYg1As`). Public `/api/public-vault` returned `active=true`, `id=68`, `status=Open`, `bidCount=0`. The keeper log contains transient commit/permission errors during rollover, but the final ownership verifier and next-lot public gate passed.
+
 ## Lot 67 claim RPC gate — 2026-11-23
 
 **FAIL / repair in progress:** the winner's Claim screen failed while reading payment receipt `HdQGSr9RfWVq52Z2XhD3QGLEzFiyRfRzNYNVpcHNNn1r` from the shared Solana Devnet RPC with HTTP 429. A separate read using the configured Devnet provider found the receipt absent, so this attempt did not submit the 10 SCRIP payment. The deployed browser bundle uses `api.devnet.solana.com`. Lot 67 remains Revealed; one peek is also open and must be closed before finalization. No winning bid will be force-cleared.
