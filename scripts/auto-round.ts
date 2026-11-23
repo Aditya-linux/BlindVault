@@ -60,7 +60,7 @@ async function main() {
   console.log("operator", wallet.publicKey.toBase58());
   console.log("auto-round · resilient loop (RPC errors retry, do not exit)");
 
-  /** Same non-Open active vault for this long → force-clear + open next. */
+  /** Log a stalled round for operator attention while continuing safe retries. */
   const STUCK_MS = Number(process.env.AUTO_ROUND_STUCK_MS ?? 3 * 60_000);
   let stuckKey: string | null = null;
   let stuckSince = 0;
@@ -136,9 +136,8 @@ async function main() {
         const openCode = run("scripts/open-vault.ts", ["--size", "0"], 120_000);
         if (openCode !== 0) {
           console.log(
-            `[${new Date().toISOString()}] resume open failed — clear + retry next tick`,
+            `[${new Date().toISOString()}] resume open failed — retry next tick`,
           );
-          run("scripts/debug/_clear-active.ts", [], 60_000);
           await sleep(5_000);
         } else {
           await sleep(5_000);
@@ -150,23 +149,11 @@ async function main() {
       if (stuckKey !== key) {
         stuckKey = key;
         stuckSince = Date.now();
-      } else if (Number(vault.bidCount) === 0 && status !== "closed" && status !== "revealed" && Date.now() - stuckSince >= STUCK_MS) {
+      } else if (Date.now() - stuckSince >= STUCK_MS) {
         console.log(
-          `[${new Date().toISOString()}] lot ${id} stuck ${status} >${STUCK_MS / 1000}s → force_clear + open`,
+          `[${new Date().toISOString()}] lot ${id} still ${status} after ${STUCK_MS / 1000}s; retrying keeper without clearing the active vault`,
         );
-        run("scripts/debug/_clear-active.ts", [], 60_000);
-        stuckKey = null;
-        await sleep(3_000);
-        const openCode = run("scripts/open-vault.ts", ["--size", "0"], 120_000);
-        if (openCode !== 0) {
-          console.log(
-            `[${new Date().toISOString()}] open failed after unstick — retry in 15s`,
-          );
-          await sleep(15_000);
-        } else {
-          await sleep(8_000);
-        }
-        continue;
+        stuckSince = Date.now();
       }
 
       console.log(

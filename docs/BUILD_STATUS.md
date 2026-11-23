@@ -1,5 +1,11 @@
 # Build Status
 
+## Live auction gate — 2026-11-23
+
+**PASS: lot 65 opened for bidding.** `npx tsx scripts/open-vault.ts --size 0` exited 0; Devnet vault `Cm4r63yDJTVz4pM6bGTnTFBAgbedJa7dWTpX3zKz5LFC` is Open with a 10 SCRIP minimum and three sealed cards. The public app `/api/public-vault` returned `active=true`, `id=65`, `status=Open`, and the same vault address. The local `keep-auto-round` watchdog is running as process 22836; its log confirmed `lot 65 OPEN` with time remaining.
+
+The unattended runner now retries a failed open or stuck keeper step without force-clearing the active vault. This protects bids and inventory during temporary RPC or TEE errors. The runner can cycle empty lots and completed claims; winning human bids still need the winner's wallet to pay/settle before the round can finalize. See [AUCTION_OPERATIONS.md](AUCTION_OPERATIONS.md) for manual and watchdog commands.
+
 ## Canonical Devnet settlement gate — 2026-11-23
 
 **PASS: two consecutive winning rounds on `pool_v9`.** Vaults 63 and 64 both completed the full bidder privacy → winner → base SCRIP payment → TEE settlement → reveal → permission closure → commit and undelegate → Solana finalize → SPL ownership path. The production claim supported by this gate is that a winning bidder receives real Devnet SPL cards after finalization. This is Devnet/TEE evidence; it is not mainnet readiness or ER VRF proof. Fill still uses TEE-local entropy.

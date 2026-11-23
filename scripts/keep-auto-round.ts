@@ -111,6 +111,6 @@ setInterval(() => {
 
 console.log(`[${stamp()}] keep-auto-round · watching (restart forever)`);
 console.log(
-  "Leave this terminal open for Blitz — stuck Revealed lots auto-clear → next Open.",
+  "Leave this terminal open for Blitz — completed lots finalize, then the next lot opens.",
 );
 start();
