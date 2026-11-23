@@ -8,6 +8,8 @@
 
 **Peek close PASS:** the buyer confirmed the peek belongs to `3i1Y…Fn74`. Devnet `close_peek_keeper` succeeded (`3NCVKd2jt7egDKTvKnAE83uaYqtKotkSW2HNmVsXcqHbupiG46PPuyHFUbmGwhqVb79a9mNSdbxq5utRhQRVR4LA`); the keeper observed `peeks=1/1`, `closedBids=0/1`. The winner's wallet must still sign Claim before the lot can close.
 
+**Production RPC gate PASS:** commit `8816b46` was pushed to GitHub `main`; Vercel Production deployment `dpl_9m4VL67VyCPUdSvRMLSY9CeZBWu2` reached Ready and aliased `blind-vault-amber.vercel.app`. Public `/api/solana-rpc` returned the exact Devnet genesis and a successful `getAccountInfo` response for the lot 67 receipt (`null`, not HTTP 429). The local browser bundle did not contain the Helius host or credential. The public `/api/public-vault` still reports lot 67 Revealed with one bid and one peek; final settlement/ownership is pending the winning wallet's Claim signature.
+
 ## Bid button gate — 2026-11-23
 
 **Local build PASS; live interaction check pending.** The active lot page now combines the authenticated private bid with the bidder's wallet-scoped bid saved on this device. Once either confirms a placed bid, it shows the amount when known and replaces “Place sealed bid” with a disabled, dim “Bid placed” button. The bid handler also checks saved bid state before any Phantom prompt, while the existing TEE account check still protects a fresh device. `npm run build` exited 0 with `/vault/[id]` generated; `git diff --check` exited 0. A live bidder screenshot after deployment remains the user-visible confirmation gate.
