@@ -1,5 +1,9 @@
 # Build Status
 
+## Bid button gate — 2026-11-23
+
+**Local build PASS; live interaction check pending.** The active lot page now combines the authenticated private bid with the bidder's wallet-scoped bid saved on this device. Once either confirms a placed bid, it shows the amount when known and replaces “Place sealed bid” with a disabled, dim “Bid placed” button. The bid handler also checks saved bid state before any Phantom prompt, while the existing TEE account check still protects a fresh device. `npm run build` exited 0 with `/vault/[id]` generated; `git diff --check` exited 0. A live bidder screenshot after deployment remains the user-visible confirmation gate.
+
 ## Current rollover gate — 2026-11-23
 
 **PASS: live winning lot 65 finalized and lot 66 opened.** Winner `3i1YQqPua8Nuzjpm3aQ5Aa34yfooDuXni3Y4Mm5rFn74` signed 10 SCRIP payment and TEE settlement. Watchdog closed the round (`4diSmNUwXMFQn1F4Unhop29rMdkT9j3eTTDvHTHKctqgab9mn3iUxw3prQgvbjYTHFUg2XcuPrkDKDj2Q7eQVg3b`), closed both permissions, committed and undelegated (`2SCFWAWrC4RAToaCQ3jN7nZr9297JyV2KejGVvjHqiTxBZ22iDqikigF15dDk87ope1wi5kvdZNRVJKwuwnJUupn`), and finalized on Solana (`3sA2kzYMF3mLergZT7y5sSV1yxTYhwqA1FpSpFvFQ73fmCJfNsrU71tApk8br95Y3PKppy9EWcmj99HQb5aAdnuV`). Independent read-only `npx tsx scripts/verify-settled-vault.ts 65` exited 0: base Settled, matching 10 SCRIP receipt, winner owns items 28/16/4, and each winner SPL ATA holds exactly one token.

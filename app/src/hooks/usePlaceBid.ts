@@ -17,7 +17,7 @@ import { getProgram } from "@/lib/program";
 import { bidPda, permissionPda, associatedTokenPda } from "@/lib/pdas";
 import { sendEr, sendSolana } from "@/lib/tx";
 import type { DecodedVault } from "@/lib/types";
-import { rememberMyBid } from "@/lib/bidMemory";
+import { rememberMyBid, rememberedBidOnLot } from "@/lib/bidMemory";
 import { useTeeAuth } from "./useTeeAuth";
 
 const TEE_VALIDATOR = new PublicKey(
@@ -43,6 +43,10 @@ export function usePlaceBid(vault: DecodedVault | null | undefined) {
         setError(
           "Connect Phantom or Solflare on Devnet first, then try again.",
         );
+        return null;
+      }
+      if (rememberedBidOnLot(publicKey.toBase58(), vault.id)) {
+        setError("You already placed a sealed bid on this lot — one bid per wallet.");
         return null;
       }
       if (vault.status !== "Open") {

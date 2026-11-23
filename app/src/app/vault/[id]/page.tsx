@@ -30,6 +30,7 @@ import { cn } from "@/lib/cn";
 import { formatMinutesLabel } from "@/lib/formatTime";
 import { useNowSecs } from "@/hooks/useNow";
 import { useStableNextLotEta } from "@/hooks/useStableNextLotEta";
+import { listRememberedBids } from "@/lib/bidMemory";
 
 export default function LiveVaultPage() {
   const params = useParams<{ id: string }>();
@@ -49,7 +50,7 @@ export default function LiveVaultPage() {
   const myPeek = useMyPeek(vaultPk);
   const tee = useTeeAuth();
   const active = useActiveVault();
-  const { connected } = useWallet();
+  const { connected, publicKey } = useWallet();
   useHintPublisher(vaultQ.data);
   const closer = useLotCloser(vaultQ.data);
   const refund = useRefundBid(vaultQ.data);
@@ -86,6 +87,18 @@ export default function LiveVaultPage() {
   const peekFeeScr = vaultQ.data ? vaultQ.data.peekFee / 1_000_000 : 0;
   const [amount, setAmount] = useState(10);
   const [showTeeNote, setShowTeeNote] = useState(false);
+  const owner = publicKey?.toBase58() ?? null;
+  const rememberedBid = useMemo(
+    () =>
+      owner && vaultPk
+        ? listRememberedBids(owner).find((bid) => bid.vaultId === id)
+        : undefined,
+    [owner, vaultPk, id, place.lastSig, myBid.dataUpdatedAt],
+  );
+  const hasPlacedBid = Boolean(myBid.data || rememberedBid);
+  const placedAmount = myBid.data
+    ? myBid.data.amount / 1_000_000
+    : rememberedBid?.amountScrip;
 
   useEffect(() => {
     setAmount((prev) => (prev < minBid ? minBid : prev));
@@ -288,7 +301,7 @@ export default function LiveVaultPage() {
           <p className="mt-3 text-[14px] text-steel-deep">
             <span className="text-ink">{statusLabel}</span>
             {metaLine ? ` · ${metaLine}` : ""}
-            {myBid.data ? " · your bid is in" : ""}
+            {hasPlacedBid ? " · your bid is in" : ""}
           </p>
           {priority === "results" && (
             <MotionNavLink
@@ -371,7 +384,7 @@ export default function LiveVaultPage() {
               <p className="text-[14px] text-steel-deep">
                 Connect a Devnet wallet (top right) to bid.
               </p>
-            ) : !tee.token ? (
+            ) : !tee.token && !hasPlacedBid ? (
               <Button
                 variant="paper"
                 onClick={() => void tee.signGuestBook()}
@@ -381,16 +394,21 @@ export default function LiveVaultPage() {
               </Button>
             ) : null}
 
-            {myBid.data ? (
+            {hasPlacedBid ? (
               <motion.div
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={spring}
               >
                 <p className="text-[15px] font-medium text-ink">Bid locked in</p>
-                <p className="mt-1 font-mono text-[13px] text-steel-deep">
-                  {myBid.data.amount / 1_000_000} SCRIP
-                </p>
+                {placedAmount != null && (
+                  <p className="mt-1 font-mono text-[13px] text-steel-deep">
+                    {placedAmount} SCRIP
+                  </p>
+                )}
+                <Button size="lg" className="mt-4 w-full" disabled>
+                  Bid placed
+                </Button>
               </motion.div>
             ) : (
               <div className="flex flex-col gap-4">
@@ -424,7 +442,7 @@ export default function LiveVaultPage() {
                   onClick={() => void place.placeBid(amount)}
                   disabled={
                     place.busy ||
-                    Boolean(myBid.data) ||
+                    myBid.isLoading ||
                     !connected ||
                     !tee.token ||
                     pastDeadline ||
