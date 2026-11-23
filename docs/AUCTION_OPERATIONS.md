@@ -46,6 +46,8 @@ taskkill /PID $watchPid /T /F
 
 Empty lots can end, reveal, close, commit, finalize, and roll forward without a bidder. A winning human bid needs the winner's wallet to sign the base SCRIP payment and TEE settlement. The operator watchdog cannot sign for a bidder or silently discard a bid. The winner should use the app's Claim flow after the deadline; the watchdog then completes the remaining stages and opens the next lot. The keeper may also need the bidder public keys (`BIDDERS`) to choose a winner if the bidders do not initiate End lot themselves.
 
+After a confirmed bid, the live lot should show a dim, disabled **Bid placed** button. If the wallet is slow to read its private bid, the same device's saved bid keeps that button disabled. Do not try to place the same wallet's bid again. After the deadline, return to the lot page and use **Claim my pack** when the winner is selected; each required Phantom prompt is part of settlement.
+
 Treat revealed cards and a selected winner as results, not ownership. For example, verify finalized lot 65 on base Solana with `npx tsx scripts/verify-settled-vault.ts 65`; it checks the payment receipt, Item owners, and one SPL token per card even after the shared pool is delegated for a later lot. Do not run `force_clear_active` or enable `FORCE_ABANDON_BIDS` to make a new lot while a winning bid is unsettled.
 
 The watchdog runs only while this computer is awake and its process is alive. For unattended uptime after reboot, run the same command under a Windows Scheduled Task or on an always-on server with private operator credentials. Monitor the log and Devnet SOL balance; a repeated RPC or TEE error will be retried without force-clearing the active vault.
