@@ -6,6 +6,8 @@
 
 The unattended runner now retries a failed open or stuck keeper step without force-clearing the active vault. This protects bids and inventory during temporary RPC or TEE errors. The runner can cycle empty lots and completed claims; winning human bids still need the winner's wallet to pay/settle before the round can finalize. See [AUCTION_OPERATIONS.md](AUCTION_OPERATIONS.md) for manual and watchdog commands.
 
+**Rollover gate pending winner settlement:** lot 65 reached its deadline with one real bid. The bidder ended the lot through the app; it is Revealed with winner `3i1YQqPua8Nuzjpm3aQ5Aa34yfooDuXni3Y4Mm5rFn74`. The watchdog is alive and reports `settle wait — winner must sign closer`; it has not force-cleared the bid. The winning wallet has 9.95595584 Devnet SOL and 349 SCRIP on base, so the Claim flow has enough public balance. Payment and TEE settlement still require that wallet's signature. The deployed app bundle contains `payWinningBid`. This run has not yet proved an unattended transition to lot 66.
+
 ## Canonical Devnet settlement gate — 2026-11-23
 
 **PASS: two consecutive winning rounds on `pool_v9`.** Vaults 63 and 64 both completed the full bidder privacy → winner → base SCRIP payment → TEE settlement → reveal → permission closure → commit and undelegate → Solana finalize → SPL ownership path. The production claim supported by this gate is that a winning bidder receives real Devnet SPL cards after finalization. This is Devnet/TEE evidence; it is not mainnet readiness or ER VRF proof. Fill still uses TEE-local entropy.
