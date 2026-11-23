@@ -12,7 +12,7 @@ The unattended runner now retries a failed open or stuck keeper step without for
 
 **UI finding:** the winner's screenshot showed lot 65 under “Packs you won” with cards even though its base payment receipt is absent. `/api/winnings` admitted any selected winner before `Settled`, and `/me` also trusted local pack memory as a won row. This hid the Me-page Claim prompt. The local fix restricts winnings to `Settled`, removes local-only pack rows, and exposes Claim for the recorded winner of a Revealed lot even if the private bid read is delayed. Build and live deployment checks follow.
 
-**UI fix local PASS:** `npm run build` exited 0. The built app's localhost `/api/winnings?owner=3i1Y…Fn74` returned HTTP 200 with no lot 65; the current public deployment returned lot 65 with `status=Revealed` and `settled=false`. History copy now calls this a selected winner with settlement pending. The corrected app must be published before the wallet retries Claim.
+**UI fix deployed PASS:** `npm run build` exited 0. The built app's localhost `/api/winnings?owner=3i1Y…Fn74` returned HTTP 200 with no lot 65, while the prior public deployment returned lot 65 with `status=Revealed` and `settled=false`. Commit `d03d603` reached Vercel Production, and the public alias now also returns no lot 65. History copy calls this a selected winner with settlement pending. The winner has been asked to refresh and complete Claim so on-chain settlement and lot 66 can proceed.
 
 ## Canonical Devnet settlement gate — 2026-11-23
 
