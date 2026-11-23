@@ -10,6 +10,10 @@ The unattended runner now retries a failed open or stuck keeper step without for
 
 **Follow-up FAIL / still pending:** after the winner reported claiming lot 65, the public app API still returned `Revealed` and the watchdog still reported `closedBids=0/1`. Read-only base RPC showed payment receipt `FhqPZUX3YyuJTf8nE771i6PmLVkbSMQmb2QTU7bEMmyq` does not exist. No lot 66 was opened because the winning bid must not be discarded. The exact app/wallet result is being requested from the winner.
 
+**UI finding:** the winner's screenshot showed lot 65 under “Packs you won” with cards even though its base payment receipt is absent. `/api/winnings` admitted any selected winner before `Settled`, and `/me` also trusted local pack memory as a won row. This hid the Me-page Claim prompt. The local fix restricts winnings to `Settled`, removes local-only pack rows, and exposes Claim for the recorded winner of a Revealed lot even if the private bid read is delayed. Build and live deployment checks follow.
+
+**UI fix local PASS:** `npm run build` exited 0. The built app's localhost `/api/winnings?owner=3i1Y…Fn74` returned HTTP 200 with no lot 65; the current public deployment returned lot 65 with `status=Revealed` and `settled=false`. History copy now calls this a selected winner with settlement pending. The corrected app must be published before the wallet retries Claim.
+
 ## Canonical Devnet settlement gate — 2026-11-23
 
 **PASS: two consecutive winning rounds on `pool_v9`.** Vaults 63 and 64 both completed the full bidder privacy → winner → base SCRIP payment → TEE settlement → reveal → permission closure → commit and undelegate → Solana finalize → SPL ownership path. The production claim supported by this gate is that a winning bidder receives real Devnet SPL cards after finalization. This is Devnet/TEE evidence; it is not mainnet readiness or ER VRF proof. Fill still uses TEE-local entropy.

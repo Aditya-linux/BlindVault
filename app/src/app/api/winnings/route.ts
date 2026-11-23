@@ -28,6 +28,7 @@ export async function GET(req: Request) {
         (lot) =>
           lot.winner === owner.toBase58() &&
           !lot.abandoned &&
+          lot.status === "Settled" &&
           lot.bidCount > 0,
       )
       .map((lot) => ({

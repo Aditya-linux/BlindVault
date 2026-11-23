@@ -373,11 +373,10 @@ export default function MePage() {
         </p>
         {connected &&
           !winnings.isLoading &&
-          history.length === 0 &&
-          localPacks.length === 0 && (
+          history.length === 0 && (
             <p className="mt-5 text-[14px] text-steel-deep">No packs yet.</p>
           )}
-        {connected && (history.length > 0 || localPacks.length > 0) && (
+        {connected && history.length > 0 && (
           <ul className="mt-6 divide-y divide-line/70 border-y border-line/70">
             {history.map((lot) => {
               const cards = resolveRevealedCards(
@@ -446,22 +445,6 @@ export default function MePage() {
                 </li>
               );
             })}
-            {localPacks
-              .filter((p) => !history.some((h) => h.vaultId === p.vaultId))
-              .map((p) => (
-                <li key={`local-${p.vaultId}`} className="py-5">
-                  <p className="text-[15px] font-medium">Lot {p.vaultId}</p>
-                  <p className="mt-1 text-[14px] text-steel-deep">
-                    You packed {formatPackLine(p.names)}
-                  </p>
-                  <MotionNavLink
-                    href={`/vault/${p.vaultId}/reveal`}
-                    className="mt-3 inline-block text-[13px] font-medium text-accent"
-                  >
-                    See results
-                  </MotionNavLink>
-                </li>
-              ))}
           </ul>
         )}
       </section>

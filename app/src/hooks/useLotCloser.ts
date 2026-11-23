@@ -92,8 +92,7 @@ export function useLotCloser(vault: DecodedVault | null | undefined) {
     vault?.status === "Revealed" &&
     Boolean(publicKey) &&
     !vault.abandoned &&
-    Boolean(myBid.data) &&
-    (vault.winner === publicKey?.toBase58() || vault.bidCount === 1);
+    vault.winner === publicKey?.toBase58();
   const alreadyDone =
     completedVaultId != null && vault != null && completedVaultId === vault.id;
 

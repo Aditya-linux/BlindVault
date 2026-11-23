@@ -56,7 +56,9 @@ function FinishedLotRow({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const title = lot.winner
-    ? `Winner ${shortAddr(lot.winner)}`
+    ? lot.status === "Settled"
+      ? `Winner ${shortAddr(lot.winner)}`
+      : `Selected winner ${shortAddr(lot.winner)} · settlement pending`
     : lot.abandoned
       ? "Abandoned · no winner"
       : "Prize revealed";
@@ -91,7 +93,7 @@ function FinishedLotRow({
             {cards.length > 0 ? (
               <>
                 {" "}
-                · packed{" "}
+                · {lot.status === "Settled" ? "packed" : "revealed"}{" "}
                 <span className="font-medium text-ink">
                   {cards
                     .map((c) =>
