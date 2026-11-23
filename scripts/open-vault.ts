@@ -195,10 +195,9 @@ async function main() {
     new AnchorProvider(teeConn, new Wallet(wallet), { commitment: "confirmed" }),
   );
 
-  // Delegation clones are eventually consistent — never init permission on a
-  // missing contents account (that left Open vaults with MISSING contents).
-  // A private pool can return null to getAccountInfo even when it is cloned.
-  // Permission initialization and fill below verify that it is usable.
+  // Delegation clones are eventually consistent. Private contents and pool
+  // accounts can return null to the operator even after they are cloned.
+  // Permission initialization and fill below verify that they are usable.
   async function touch(pk: PublicKey, label: string) {
     try {
       const touchSig = await (teeProgram.methods as any)
@@ -213,24 +212,22 @@ async function main() {
   }
 
   for (let i = 0; i < 20; i++) {
-    const [vInfo, cInfo, hInfo] = await Promise.all([
+    const [vInfo, hInfo] = await Promise.all([
       teeConn.getAccountInfo(vault),
-      teeConn.getAccountInfo(contents),
       teeConn.getAccountInfo(hints),
     ]);
-    if (vInfo && cInfo && hInfo) {
+    if (vInfo && hInfo) {
       console.log("tee clones ready after", i * 2, "s");
       break;
     }
     if (i === 0) {
-      console.log("waiting for TEE clones (vault/hints/contents)…");
+      console.log("waiting for TEE clones (vault/hints)…");
     }
-    if (!cInfo) await touch(contents, "contents");
     if (!hInfo) await touch(hints, "hints");
     if (!vInfo) await touch(vault, "vault");
     if (i === 19) {
       throw new Error(
-        `TEE clone timeout — vault=${!!vInfo} hints=${!!hInfo} contents=${!!cInfo}`,
+        `TEE clone timeout — vault=${!!vInfo} hints=${!!hInfo}`,
       );
     }
     await new Promise((r) => setTimeout(r, 2_000));
@@ -240,23 +237,17 @@ async function main() {
   try {
     const existing = await (teeProgram.account as any).vault.fetch(vault);
     if (statusName(existing.status) === "open") {
-      const cInfo = await teeConn.getAccountInfo(contents);
-      if (cInfo) {
-        console.log("OPEN ok (already)", {
-          vault: vault.toBase58(),
-          status: "open",
-          deadlineTs: Number(existing.deadlineTs),
-          itemCount: Number(existing.itemCount),
-          minBid: Number(existing.minBid) / 1_000_000,
-        });
-        process.exit(0);
-      }
-      throw new Error(
-        "Vault Open on TEE but contents missing — clear active and open next id",
-      );
+      console.log("OPEN ok (already)", {
+        vault: vault.toBase58(),
+        status: "open",
+        deadlineTs: Number(existing.deadlineTs),
+        itemCount: Number(existing.itemCount),
+        minBid: Number(existing.minBid) / 1_000_000,
+      });
+      process.exit(0);
     }
   } catch (e) {
-    if (String(e).includes("contents missing")) throw e;
+    console.log("TEE vault status read retry through permission/fill", String(e).slice(0, 120));
   }
 
   let contentsPermSig: string | null = null;

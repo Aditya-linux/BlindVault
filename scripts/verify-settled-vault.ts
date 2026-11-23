@@ -12,8 +12,10 @@ async function main() {
   const house = housePda();
   const vaultPk = vaultPda(house, id);
   const poolInfo = await connection.getAccountInfo(poolPda(house));
-  if (!poolInfo || !poolInfo.owner.equals(program.programId)) {
-    throw new Error("Pool ledger has not undelegated to base Solana");
+  const poolCurrentlyUndelegated = Boolean(poolInfo?.owner.equals(program.programId));
+  const vaultInfo = await connection.getAccountInfo(vaultPk);
+  if (!vaultInfo?.owner.equals(program.programId)) {
+    throw new Error("Vault is not owned by the base Solana program");
   }
   const vault = await (program.account as any).vault.fetch(vaultPk);
   if (Object.keys(vault.status)[0] !== "settled") throw new Error("Vault is not Settled on Solana");
@@ -39,7 +41,7 @@ async function main() {
     if (balance.value.amount !== "1") throw new Error(`Winner token balance for item ${index} is ${balance.value.amount}`);
     cards.push(index);
   }
-  console.log("VERIFY PASS", { id, vault: vaultPk.toBase58(), winner: winner.toBase58(), paidScrip: Number(receipt.amount) / 1_000_000, receipt: receiptPk.toBase58(), poolUndelegated: true, cards });
+  console.log("VERIFY PASS", { id, vault: vaultPk.toBase58(), winner: winner.toBase58(), paidScrip: Number(receipt.amount) / 1_000_000, receipt: receiptPk.toBase58(), poolCurrentlyUndelegated, cards });
 }
 
 main().catch((error) => {

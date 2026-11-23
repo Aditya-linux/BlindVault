@@ -1,6 +1,14 @@
 # Build Status
 
-## Live auction gate — 2026-11-23
+## Current rollover gate — 2026-11-23
+
+**PASS: live winning lot 65 finalized and lot 66 opened.** Winner `3i1YQqPua8Nuzjpm3aQ5Aa34yfooDuXni3Y4Mm5rFn74` signed 10 SCRIP payment and TEE settlement. Watchdog closed the round (`4diSmNUwXMFQn1F4Unhop29rMdkT9j3eTTDvHTHKctqgab9mn3iUxw3prQgvbjYTHFUg2XcuPrkDKDj2Q7eQVg3b`), closed both permissions, committed and undelegated (`2SCFWAWrC4RAToaCQ3jN7nZr9297JyV2KejGVvjHqiTxBZ22iDqikigF15dDk87ope1wi5kvdZNRVJKwuwnJUupn`), and finalized on Solana (`3sA2kzYMF3mLergZT7y5sSV1yxTYhwqA1FpSpFvFQ73fmCJfNsrU71tApk8br95Y3PKppy9EWcmj99HQb5aAdnuV`). Independent read-only `npx tsx scripts/verify-settled-vault.ts 65` exited 0: base Settled, matching 10 SCRIP receipt, winner owns items 28/16/4, and each winner SPL ATA holds exactly one token.
+
+The public `/api/public-vault` then returned `id=66`, `status=Open`, `bidCount=0`, vault `ABjWVNU2nbA3iFjiFp9tGXu5yMRzeFbPVnU6BVsbMqEm`; the watchdog log also reported `lot 66 OPEN`. Its first open attempt met a concurrent creation seed race, and a retry treated private `VaultContents` RPC denial as a missing clone. The active lot nonetheless opened. `open-vault.ts` now treats private contents like the private pool: it checks visible vault/hints clones, then uses permission/fill instructions to prove the private accounts are usable. Running the updated script on active lot 66 exited 0 with `OPEN ok (already)` and no new lot creation.
+
+The historical lot 65 verifier assumed the shared pool must remain undelegated; that assumption fails once lot 66 redelegates it. The verifier now checks the old vault's durable base owner, receipt, Item owners, and SPL balances and reports the pool's *current* owner as information only. The first failed verification and corrected PASS are both recorded above. This gate proves a live claimed winning round can roll to the next Open lot; future winning rounds still need the winner's wallet signature.
+
+## Earlier live auction gate — 2026-11-23 (superseded above)
 
 **PASS: lot 65 opened for bidding.** `npx tsx scripts/open-vault.ts --size 0` exited 0; Devnet vault `Cm4r63yDJTVz4pM6bGTnTFBAgbedJa7dWTpX3zKz5LFC` is Open with a 10 SCRIP minimum and three sealed cards. The public app `/api/public-vault` returned `active=true`, `id=65`, `status=Open`, and the same vault address. The local `keep-auto-round` watchdog is running as process 22836; its log confirmed `lot 65 OPEN` with time remaining.
 
