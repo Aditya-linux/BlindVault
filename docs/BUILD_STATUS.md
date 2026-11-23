@@ -1,8 +1,42 @@
 # Build Status
 
+## Canonical Devnet settlement gate — 2026-11-23
+
+**PASS: two consecutive winning rounds on `pool_v9`.** Vaults 63 and 64 both completed the full bidder privacy → winner → base SCRIP payment → TEE settlement → reveal → permission closure → commit and undelegate → Solana finalize → SPL ownership path. The production claim supported by this gate is that a winning bidder receives real Devnet SPL cards after finalization. This is Devnet/TEE evidence; it is not mainnet readiness or ER VRF proof. Fill still uses TEE-local entropy.
+
+- Canonical program: `E9UmQYi4gTHyyQ3SK5B4UCpewBnUBFrEc5NqkkAjr42h`, upgraded at slot `525384044`, signature `5KxuL8cc3ZEQGATdu9ZCiqreFx2ynQoMzCJ6oqJqE8idvVzjB5mYpsKprXvEWjCcNaiLNuU5eqyMEznAUHiNf7bQ`. Local SBF SHA-256 `FB914C76950CE6BA65740F72A2C05A55C8F18C28F3F6F3CA238110A2C7422FDE`; live program data prefix matched byte for byte and remaining allocated bytes were zero. Generated and app IDL SHA-256 `3A13ECB68A7294D79AF6A94BD8B5B1EC0435897D499439534F8621E286A53020`.
+- Canonical pool seed: `pool_v9`; PDA `7oeNVJdvBa9NPixEBNNhiYg172eEgHSkBPFZxZ9jxPzJ`; initialized by `5YajhfzHF7QvQ1j8nBrR8kpvVT4fwXBLzbLWJkCUswvY1uU5JHyGnzrQY6MPMiamz3Ao6EmyES9wa8GAz6FLwn7w`.
+- Vault 63: E2E exited 0; private bidder read succeeded, anonymous and authenticated stranger reads failed; 15 SCRIP base payment, TEE settlement, commit/undelegate, and finalize succeeded. Independent `npx tsx scripts/verify-settled-vault.ts 63` exited 0: Settled, pool undelegated, items 31/9/27 owned by the winner with exactly one SPL token each.
+- Vault 64: E2E exited 0; the same privacy and settlement checks passed. Base payment `HGnGVN2eYxeKLygkfEupCe2pWuVQKGpAPw6GFbzUb2KqxN3umkHME9dm1EB2FHfY2wNNgK83LnC6mHjBZX4jSTS`; TEE settlement `2aUkstnxo2tzFtCDTUfL8TG7yDq7pJVwapuY7tjT8N9MsK3KLnA5PUCqVaCuSPRcCcyskKFmy86iZWTpakzdg5Aw`; commit/undelegate `2N68M56oQCmbFCvBdDGG2VhZBpRgkCL2zGs9B9eDz1mvw7G85DGgHUmaVJPShxbABAjdQx8fN6xvC3HfnFmR6xRS`; finalize `H7J8JB6FpqsL21gxCM4nVm1Uzwc83aCLHbDBe3YZXpADa1NJWJzWzJ5D8cuBTLcuEv9LK3tSjpwSnoovosdYn6s`. Independent `npx tsx scripts/verify-settled-vault.ts 64` exited 0: Settled, pool undelegated, 15 SCRIP receipt, items 14/30/26 owned by winner `3Ubt1gPdiQ4byM1bpxKLEZJHz1EFFiVXE963xkJoTv3J`, one SPL token each. House durations restored to `[480,480,600]`.
+- The vault 64 open gate initially failed because private pool RPC reads returned null even though the ledger clone was usable. `open-vault.ts` now checks public vault/hints/contents clone availability, then lets permission initialization and `fill_vault` prove pool usability. `fill_vault` passed and the full round completed.
+- Local checks PASS: `npm run typecheck` exit 0; `npm run build` exit 0 (all 10 static pages generated); `cargo test -p blind_vault --locked` exit 0 (4 tests); `git diff --check` exit 0. The first sandboxed build compiled but failed on a Windows Next worker `spawn EPERM`; the permitted rerun completed successfully.
+- Remaining release gate: commit and push the tested tree to GitHub `main`, then compare the public branch with any demo video artifact if supplied. The video itself is not in this repository.
+
+## Historical log below
+
+The entries below document prior gates and may describe older pools, vaults, and product states. Use the canonical gate above for the current status.
+
+## Historical settlement gate — 2026-11-23 (superseded above)
+
+**Current repeatability gate: FAIL / in progress.** The pool_v9 program binary is live, but pool_v9 has not yet initialized. Vault 63 is delegated with zero bids. The first pool_v9 init attempt was blocked before execution by automatic approval review's usage limit; the approved retry reached preflight and failed because `03-init-pool.ts` used a finalized slot too old for AddressLookupTable creation. The script now requests a recent processed slot. Do not open another vault or claim repeatability until pool_v9 is initialized and two rounds finalize on that same pool.
+
+**PASS for one live Devnet winning round (vault 62).** The block below is a historical build log; its earlier lot numbers and pool versions are not current.
+
+- GitHub `main` was fast-forwarded through `1dce0cc` (the nine earlier local commits). The current tested changes still need to be committed and pushed.
+- Current source uses `pool_v8`. Program `E9UmQYi4gTHyyQ3SK5B4UCpewBnUBFrEc5NqkkAjr42h` last upgraded at slot `525382758`, signature `5MG8X7zGssY8XyZU63XWUnxxvYiv8RBrSRAQ4xipghMDBQVF6Cst7u3nzvcyyhrHxes7sWigG3CJtoz3RbiVXew5`. Local SBF is 836,944 bytes, SHA-256 `A9FACF279AA7A9722D2DB2DEB7661E154187168C93A48FF5AB3620AF8652716C`. Live dump prefix matches exactly; remaining allocated bytes are zero. Generated/app IDL SHA-256 is `A5B7BC6E4AD928C3DC872F1879FD1319494830F3B31B2564853666517BA33B24`.
+- Pool_v8 PDA `9zbFnfcerg6jX7Kcs4JiUFgKhH1oHWDeqKrunUSp2Pgc` initialized, signature `egfDHuPYte8c3jwVQtwzbXhpjMZ5vUzfuAC9g6V1eV7vn7vU4iEQCoyE1HaBVtHPHesFPuPEeKeyW1bDHpLNzPt`.
+- PASS: `cargo test -p blind_vault --locked` (4 tests), Anchor SBF build, app and script typechecks, final Next production build. Read-only vault 62 verifier exited 0 again after the final deployment.
+- Live vault 61: isolated bidder placed a bid; bidder-authenticated TEE read succeeded and anonymous read was denied; end and reveal succeeded. Winner settlement FAILed preflight because TEE cannot write the base house treasury ATA. No settlement transaction was sent. The generated test key did not persist after failure, so `clear_reserved_items([31,9,8])` and `force_clear_active` recovered the Devnet inventory/active pointer; this round is not ownership proof.
+- Vault 62 **PASS**: isolated bidder `3Ubt1gPdiQ4byM1bpxKLEZJHz1EFFiVXE963xkJoTv3J` placed a private bid; authenticated bidder read passed and anonymous read was denied. `end_auction` chose that bidder (`3FiHmgz...`), `reveal_contents` succeeded (`4EPBXk...`). Base `pay_winning_bid` transferred 15 SCRIP to the house treasury (`3qsUuBE...`), TEE `settle_winning_bid` verified its receipt (`gEetuZw...`), `close_round` (`5NYJ7T8...`), `close_contents_permission` (`4dJyaCJ...`), `commit_closed_round` (`3Lri3gF...`), and Solana `finalize` (`2YHepJs...`) succeeded. The house active pointer cleared. Independent read-only `npx tsx scripts/verify-settled-vault.ts 62` exited 0: base vault Settled, payment receipt exactly 15 SCRIP, Items 18/32/3 sold with `owner=winner`, and each winner SPL ATA balance exactly 1. The E2E runner also asserted a 15 SCRIP base treasury delta.
+- The E2E runner printed PASS but its TEE websocket kept the process open; it was manually interrupted after assertions. The script now exits 0 after successful verification. Run another round to verify that exit behavior if needed.
+- Still limited: this is one Devnet/TEE proof, not a repeatability claim. A forced cleanup can orphan a delegated pool clone (vault 61 led to pool_v8); do not force clear winning rounds. Losing bidders still need to sign their refund path. The E2E test wallet has SCRIP deposited to TEE after payment; withdrawal was not part of this gate.
+
 ```text
-PHASE: Prize history chain live · plain copy · finish-today sprint
+PHASE: WIND-UP · see docs/SUBMIT_NOW.md (recording + form)
 HACK: Solana Blitz v10 · Entertainment Finance · submit build.magicblock.app/?stage=blitz#submit
+
+GATE: lot 57 OPEN · pool_v6 · auto-round:keep started — ready to record/submit
+PACK: docs/SUBMIT_NOW.md · form draft docs/BLITZ_FORM_DRAFT.md
 
 DONE (live Devnet/TEE):
   - Program E9UmQYi4gTHyyQ3SK5B4UCpewBnUBFrEc5NqkkAjr42h
@@ -14,6 +48,8 @@ DONE (live Devnet/TEE):
   - /history prize chain (vault → winner → packed cards) synced with house clock
   - /api/history + /api/winnings share loadVaultHistory (same source of truth)
   - Home Recent prizes + My bids refreshes with nextVaultId / active vault
+  - Whispers: “Total value about X–Y SCRIP” (no Appraised)
+  - Post-claim pack score: invested vs sticker value × bid (popup / reveal / Me)
   - UI: https://blind-vault-amber.vercel.app
 
 DONE (wallet):
@@ -38,14 +74,14 @@ BLITZ DEADLINE: Fri Nov 27, 2026 · 14:00 UTC (21:00 ICT / 19:30 IST)
   Build week Nov 20–27 · Submit: https://build.magicblock.app/?stage=blitz#submit
   Source: MagicBlock @magicblock + Solana Stream (21:00 ICT)
 
-NEXT:
-  - Demo video → Blitz submit before deadline
-  - Human wallet pass on live lot (Sign in → bid → pack on Me)
-  - Redeploy program when ready: close_round skips MagicIntent 0xa0000000 (pool+Closed commit)
-  OUT: ER VRF (fill = TEE-local entropy — honest)
+NEXT (tomorrow only):
+  - Follow docs/TOMORROW_CHECKLIST.md end-to-end
+  - Unblock Open (clear lot 56) → auto-round:keep → human bid/claim → ≤3m video → submit
+  OUT: ER VRF · more features · UI redesign
 
 OPS (judges):
-  - Keep Open windows: `npm run auto-round:keep` (restarts if child dies)
+  - Keep Open windows: `npm run auto-round:keep` (restarts forever + heartbeat)
+  - Stuck Revealed (>90s past deadline or 3m same status) → force_clear → next Open
   - Leave that terminal open on the operator machine
 
 DONE (wind-up):
@@ -57,6 +93,18 @@ DONE (wind-up):
   - Live proof lot 43: bid→end→reveal→settle → History/Me items [8,0,7]
     (close_round MagicIntent 0xa0000000 → force_clear; next Open unblocked)
   - Lot 44 Open ~8m; house durationSecs restored [480,480,600]; auto-round running
+
+DONE (Me / SCRIP / peek UX):
+  - /me decongested: no stacked cards; SCRIP = free Devnet play token (not cash)
+  - Current bid reads TEE bid; falls back to device memory + “Recent bids”
+  - Peek errors humanized (invalid account data → plain copy)
+  - Claim strip hides after settle (bid PDA closed) — no sticky “Claim lot N”
+  - Live: https://blind-vault-amber.vercel.app
+
+DONE (rarity-weighted fill):
+  - fill_vault: TEE entropy + rarity weights (Gold+Legendary scarce ~4%/slot)
+  - Warehouse no longer shows odds %; cards don’t show chance labels
+  - Program upgraded on Devnet (same id E9UmQYi…) — next Open lots use new mix
 
 HONEST LIMITS: fill = TEE-local entropy · Devnet/TEE only · loser refund needs bidder online while Revealed · close_round TEE flake mitigated by force_clear
 

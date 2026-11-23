@@ -98,9 +98,10 @@ export function presentHint(h: HintResult): HintPresentation {
     case 2:
       return {
         kind: 2,
-        label: "Value band",
-        headline: `Appraised around ${h.a}–${h.b} SCRIP`,
-        whisper: "Rough warehouse estimate — not a guarantee you’ll profit.",
+        label: "Total value",
+        headline: `Total value about ${h.a}–${h.b} SCRIP`,
+        whisper:
+          "Ballpark sum of the cards’ sticker prices — not what you should bid, and not a profit promise.",
       };
     case 3:
       return {
@@ -145,8 +146,8 @@ export const HINT_SLOT_META: {
   },
   {
     kind: 2,
-    label: "Value band",
-    lockedWhisper: "Ballpark SCRIP value of everything inside",
+    label: "Total value",
+    lockedWhisper: "Ballpark total SCRIP value of everything inside",
   },
   {
     kind: 3,

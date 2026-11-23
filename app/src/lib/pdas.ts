@@ -12,13 +12,14 @@ const programId = () => new PublicKey(PROGRAM_ID);
 export const SEEDS = {
   house: Buffer.from("house"),
   item: Buffer.from("item"),
-  pool: Buffer.from("pool_v4"),
+  pool: Buffer.from("pool_v9"),
   vault: Buffer.from("vault"),
   hints: Buffer.from("hints"),
   contents: Buffer.from("contents"),
   bid: Buffer.from("bid"),
   peek: Buffer.from("peek"),
   faucet: Buffer.from("faucet"),
+  payment: Buffer.from("payment"),
 } as const;
 
 export function housePda(): PublicKey {
@@ -64,6 +65,13 @@ export function contentsPda(vault: PublicKey): PublicKey {
 export function bidPda(vault: PublicKey, bidder: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync(
     [SEEDS.bid, vault.toBuffer(), bidder.toBuffer()],
+    programId(),
+  )[0];
+}
+
+export function paymentReceiptPda(vault: PublicKey, payer: PublicKey): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [SEEDS.payment, vault.toBuffer(), payer.toBuffer()],
     programId(),
   )[0];
 }

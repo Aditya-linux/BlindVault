@@ -60,6 +60,8 @@ pub enum ErrorCode {
     UnclosedBids,
     #[msg("Not all peeks closed")]
     UnclosedPeeks,
+    #[msg("Ephemeral permissions must close before commit")]
+    UnclosedPermission,
     #[msg("Vault not undelegated yet")]
     NotUndelegated,
     #[msg("Item mismatch on finalize")]

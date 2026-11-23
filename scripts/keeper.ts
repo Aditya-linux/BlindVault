@@ -3,7 +3,7 @@
  * close_round → wait undelegate → finalize.
  *
  * Notes:
- * - Settle uses Model A (winner SCRIP ATA escrow + operator ATA sink).
+ * - Settle moves winner SCRIP from bidder ATA to the house treasury ATA.
  * - Loser `refund_bid` requires the losing bidder to sign — keeper cannot
  *   refund strangers; UI / bidder wallet must close those.
  * - Operator `close_peek` only for peeks owned by this wallet.
@@ -34,6 +34,7 @@ import {
   hintsPda,
   housePda,
   itemPda,
+  paymentReceiptPda,
   poolPda,
   solanaProvider,
   TEE_RPC,
@@ -90,7 +91,7 @@ async function main() {
   const hints = hintsPda(vaultPk);
   const contents = contentsPda(vaultPk);
   const poolLedger = poolPda(house);
-  const operatorTreasury = associatedTokenAddress(mint, wallet.publicKey);
+  const houseTreasury = houseAcct.treasury as PublicKey;
 
   const tick = async () => {
     let vault: any;
@@ -148,7 +149,7 @@ async function main() {
           (bidCount === 0 && pastEmptyGrace) ||
           (bidCount > 0 &&
             pastBidWait &&
-            process.env.FORCE_ABANDON_BIDS !== "0");
+            process.env.FORCE_ABANDON_BIDS === "1");
 
         const envBidders = (process.env.BIDDERS ?? "")
           .split(",")
@@ -260,9 +261,8 @@ async function main() {
       const hasWinner =
         bidCount > 0 && winner && !winner.equals(PublicKey.default);
 
-      // Empty abandoned lots: close + clear active immediately so auto-round
-      // can open the next Open lot. Skip undelegate wait (abandoned path
-      // never undelegates on TEE — that hung the crank for minutes).
+      // Empty abandoned lots: close, then let the next tick commit,
+      // undelegate, and finalize before opening another lot.
       if (Boolean(vault.abandoned) && bidCount === 0 && peeksSold === 0) {
         try {
           const closeSig = await (teeProgram.methods as any)
@@ -284,24 +284,12 @@ async function main() {
         } catch (e) {
           console.log("close_round abandoned skip", String(e).slice(0, 200));
         }
-        try {
-          const clearSig = await (program.methods as any)
-            .forceClearActive()
-            .accounts({
-              authority: wallet.publicKey,
-              house,
-              vault: vaultPk,
-            })
-            .rpc();
-          console.log("force_clear_active", clearSig);
-        } catch (e) {
-          console.log("force_clear_active fail", String(e).slice(0, 200));
-        }
-        console.log("abandoned empty cleared — next lot can open");
+        console.log("abandoned empty closed — commit and finalize on next tick");
         return;
       }
 
-      // Model A settle — winner ATA as escrow, operator ATA as TEE sink
+      // Winner pays the house treasury on base; TEE closes the private bid
+      // only after the base payment receipt is visible.
       if (hasWinner && closedBids < bidCount) {
         try {
           const bid = PublicKey.findProgramAddressSync(
@@ -322,8 +310,9 @@ async function main() {
                 lot: vaultPk,
                 bid,
                 bidPermission: permissionPdaFromAccount(bid),
+                paymentReceipt: paymentReceiptPda(vaultPk, winner),
                 escrow: winnerAta,
-                treasury: operatorTreasury,
+                treasury: houseTreasury,
                 permissionProgram: PERMISSION_PROGRAM_ID,
                 tokenProgram: TOKEN_PROGRAM_ID,
               })
@@ -393,18 +382,52 @@ async function main() {
       }
 
       vault = await (teeProgram.account as any).vault.fetch(vaultPk);
+      const closedBidsNow = Number(vault.closedBidCount);
+      const closedPeeksNow = Number(vault.closedPeekCount);
+      const bidCountNow = Number(vault.bidCount);
+      const peeksSoldNow = Number(vault.peeksSold);
       const readyClose =
-        Number(vault.closedBidCount) === Number(vault.bidCount) &&
-        Number(vault.closedPeekCount) === Number(vault.peeksSold);
+        closedBidsNow === bidCountNow && closedPeeksNow === peeksSoldNow;
+      // Never leave judges on a dead Revealed lot. After grace, clear active
+      // so auto-round opens the next Open window (Devnet only).
+      const stuckGraceSecs = Number(process.env.STUCK_REVEALED_SECS ?? 90);
+      const deadlineTs = Number(vault.deadlineTs);
+      const nowSecs = Math.floor(Date.now() / 1000);
+      const pastStuck =
+        deadlineTs > 0 && nowSecs >= deadlineTs + stuckGraceSecs;
 
       if (!readyClose) {
         console.log(
-          `close_round wait closedBids=${vault.closedBidCount}/${vault.bidCount} peeks=${vault.closedPeekCount}/${vault.peeksSold}`,
+          `close_round wait closedBids=${closedBidsNow}/${bidCountNow} peeks=${closedPeeksNow}/${peeksSoldNow}`,
         );
-        if (Number(vault.bidCount) > Number(vault.closedBidCount) + (hasWinner ? 1 : 0)) {
+        if (bidCountNow > closedBidsNow + (hasWinner ? 1 : 0)) {
           console.log(
             "note: remaining closedBid gap is usually loser refunds (bidder must sign)",
           );
+        }
+        if (pastStuck && bidCountNow === 0) {
+          console.log(
+            `revealed stuck >${stuckGraceSecs}s past deadline → force_clear_active`,
+          );
+          try {
+            const clearSig = await (program.methods as any)
+              .forceClearActive()
+              .accounts({
+                authority: wallet.publicKey,
+                house,
+                vault: vaultPk,
+              })
+              .rpc();
+            console.log(
+              "force_clear_active (stuck revealed — next lot unblocked)",
+              clearSig,
+            );
+          } catch (clearErr) {
+            console.log(
+              "force_clear_active fail",
+              String(clearErr).slice(0, 200),
+            );
+          }
         }
         return;
       }
@@ -432,10 +455,10 @@ async function main() {
         console.log("close_round skip", String(e).slice(0, 200));
       }
 
-      // Abandoned rounds skip undelegate. Also clear active if MagicIntent
-      // close_round flakes (0xa0000000) after settle so the next Open lot
-      // can start — winner already settled SCRIP; finalize retries later.
-      if (Boolean(vault.abandoned) || (!closedOk && hasWinner && closedBids >= bidCount)) {
+      // Preserve a successfully closed lot for commit and base-layer finalize.
+      // Only a failed close uses the Devnet escape hatch.
+      const shouldClear = !closedOk && pastStuck && bidCountNow === 0;
+      if (shouldClear) {
         try {
           const clearSig = await (program.methods as any)
             .forceClearActive()
@@ -445,12 +468,7 @@ async function main() {
               vault: vaultPk,
             })
             .rpc();
-          console.log(
-            closedOk
-              ? "force_clear_active"
-              : "force_clear_active (close_round blocked — next lot unblocked)",
-            clearSig,
-          );
+          console.log("force_clear_active (close_round blocked)", clearSig);
         } catch (clearErr) {
           console.log(
             "force_clear_active fail",
@@ -462,6 +480,51 @@ async function main() {
     }
 
     if (status === "closed" || status === "settled") {
+      const baseInfo = await connection.getAccountInfo(vaultPk);
+      if (status === "closed" && baseInfo && !baseInfo.owner.equals(program.programId)) {
+        const roundAccounts = {
+          payer: wallet.publicKey,
+          vault: vaultPk,
+          hints,
+          contents,
+          poolLedger,
+          contentsPermission: permissionPdaFromAccount(contents),
+          poolPermission: permissionPdaFromAccount(poolLedger),
+          ephemeralVault: EPHEMERAL_VAULT_ID,
+          magicProgram: MAGIC_PROGRAM_ID,
+          permissionProgram: PERMISSION_PROGRAM_ID,
+        };
+        try {
+          const sig = await (teeProgram.methods as any)
+            .closeContentsPermission()
+            .accounts(roundAccounts)
+            .rpc();
+          console.log("close_contents_permission", sig);
+        } catch (e) {
+          console.log("close_contents_permission retry later", String(e).slice(0, 200));
+          return;
+        }
+        try {
+          const sig = await (teeProgram.methods as any)
+            .closePoolPermission()
+            .accounts(roundAccounts)
+            .rpc();
+          console.log("close_pool_permission", sig);
+        } catch (e) {
+          console.log("close_pool_permission retry later", String(e).slice(0, 200));
+          return;
+        }
+        try {
+          const sig = await (teeProgram.methods as any)
+            .commitClosedRound()
+            .accounts(roundAccounts)
+            .rpc();
+          console.log("commit_closed_round", sig);
+        } catch (e) {
+          console.log("commit_closed_round retry later", String(e).slice(0, 200));
+          return;
+        }
+      }
       await finalizeIfReady({
         connection,
         program,
@@ -571,22 +634,6 @@ async function finalizeIfReady(opts: {
     "winner",
     (vaultSol.winner as PublicKey).toBase58(),
   );
-
-  if (indices.length > 0) {
-    try {
-      const rel = await (teeProgram.methods as any)
-        .releasePoolItems(indices)
-        .accounts({
-          authority: wallet.publicKey,
-          house,
-          poolLedger,
-        })
-        .rpc();
-      console.log("release_pool_items", rel);
-    } catch (e) {
-      console.log("release_pool_items skip", String(e).slice(0, 160));
-    }
-  }
 
   const remaining: {
     pubkey: PublicKey;

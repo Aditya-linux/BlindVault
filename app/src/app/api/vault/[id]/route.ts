@@ -72,6 +72,20 @@ export async function GET(
       source = "solana";
     }
 
+    // Finalized Solana state outranks an older TEE clone stuck at Closed.
+    if (source === "tee") {
+      try {
+        const base = readonlyProgram(new Connection(SOLANA_RPC, "confirmed"));
+        const finalized = await (base.account as any).vault.fetch(vault);
+        if (vaultStatusName(finalized.status) === "Settled") {
+          vaultRaw = finalized;
+          source = "solana";
+        }
+      } catch {
+        // Delegated vaults are not readable as program accounts on base.
+      }
+    }
+
     return NextResponse.json({
       source,
       vault: {

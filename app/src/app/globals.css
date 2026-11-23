@@ -575,7 +575,7 @@
 .collectible-card__type {
   font-family: var(--font-mono);
   font-size: 0.58rem;
-  color: var(--color-steel);
+  color: color-mix(in oklab, var(--card-ink, #1a2433) 78%, transparent);
 }
 
 .collectible-card__flavor {
@@ -583,7 +583,8 @@
   padding: 0 0.55rem 0.55rem;
   font-size: 0.62rem;
   line-height: 1.35;
-  color: var(--color-steel-deep);
+  /* Cards are pastel — page steel tokens are light-on-dark and wash out here */
+  color: color-mix(in oklab, var(--card-ink, #1a2433) 72%, transparent);
 }
 
 .collectible-card__qty {

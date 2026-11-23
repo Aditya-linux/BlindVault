@@ -6,11 +6,14 @@ import { CollectibleCard } from "@/components/CollectibleCard";
 import { Button } from "@/components/ui/button";
 import { motion, soft } from "@/components/motion";
 import { formatPackLine } from "@/lib/packHistory";
+import { formatPackScoreLine, scorePack } from "@/lib/packScore";
 import type { StackedItem } from "@/lib/stackInventory";
 
 type PackPopupProps = {
   vaultId: number;
   cards: StackedItem[];
+  /** Winning sealed bid in raw token units (×1e6). */
+  highestBidRaw?: number | null;
   onClose: () => void;
   onViewHistory?: () => void;
 };
@@ -18,6 +21,7 @@ type PackPopupProps = {
 export function PackPopup({
   vaultId,
   cards,
+  highestBidRaw,
   onClose,
   onViewHistory,
 }: PackPopupProps) {
@@ -27,6 +31,8 @@ export function PackPopup({
     c.count > 1 ? `${c.name} ×${c.count}` : c.name,
   );
   const line = formatPackLine(names);
+  const score = scorePack({ highestBidRaw, cards });
+  const scoreLine = formatPackScoreLine(score);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -71,9 +77,11 @@ export function PackPopup({
           >
             You packed {line || "these cards"}
           </h2>
+          <p className="mt-3 text-[15px] font-medium leading-snug text-ink">
+            {scoreLine}
+          </p>
           <p className="mt-2 text-[13px] leading-relaxed text-steel-deep">
-            Saved under My bids. Cards also show in Your cards once settlement
-            finishes.
+            Sticker value vs what you sealed. Saved under My bids.
           </p>
         </div>
 

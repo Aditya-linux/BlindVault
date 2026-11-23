@@ -39,7 +39,7 @@ export async function GET(req: Request) {
         revealedItems: lot.revealedItems,
         revealedValue: lot.revealedValue,
         abandoned: lot.abandoned,
-        settled: lot.status === "Settled" || lot.status === "Closed",
+        settled: lot.status === "Settled",
       }));
 
     return NextResponse.json(

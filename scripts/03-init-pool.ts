@@ -29,7 +29,8 @@ async function main() {
   const items: PublicKey[] = [];
   for (let i = 0; i < count; i++) items.push(itemPda(i));
 
-  const slot = await connection.getSlot("finalized");
+  // Devnet finalized can lag beyond the ALT program's recent-slot window.
+  const slot = await connection.getSlot("processed");
   const [createIx, lutAddress] = AddressLookupTableProgram.createLookupTable({
     authority: wallet.publicKey,
     payer: wallet.publicKey,
@@ -98,6 +99,7 @@ async function main() {
   );
 
   console.log("init_pool_ledger ok", sig, poolLedger.toBase58());
+  process.exit(0);
 }
 
 main().catch((e) => {

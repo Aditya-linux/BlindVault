@@ -2,28 +2,31 @@
 
 import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { useReducedMotion } from "motion/react";
 import { CollectibleCard } from "@/components/CollectibleCard";
 import { PackPopup } from "@/components/PackPopup";
-import { shortAddr } from "@/lib/format";
-import { housePda, vaultPda } from "@/lib/pdas";
-import { stackInventory } from "@/lib/stackInventory";
-import { useVaultLive } from "@/hooks/useVaultLive";
+import { MotionNavLink, PageEnter, soft, motion } from "@/components/motion";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { useMyPeek } from "@/hooks/useBuyPeek";
+import { useClosePeek } from "@/hooks/useClosePeek";
 import {
   resolveRevealedCards,
   useItemsOnChain,
 } from "@/hooks/useItemsOnChain";
-import { useMyPeek } from "@/hooks/useBuyPeek";
-import { useClosePeek } from "@/hooks/useClosePeek";
 import { usePackPopup } from "@/hooks/usePackPopup";
 import { useRefundBid } from "@/hooks/useRefundBid";
-import { MotionNavLink, PageEnter, soft, motion } from "@/components/motion";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { useVaultLive } from "@/hooks/useVaultLive";
 import { cn } from "@/lib/cn";
+import { shortAddr } from "@/lib/format";
+import { formatPackScoreLine, scorePack } from "@/lib/packScore";
+import { housePda, vaultPda } from "@/lib/pdas";
+import { stackInventory } from "@/lib/stackInventory";
 
 export default function RevealPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const { publicKey } = useWallet();
   const id = Number(params.id);
   const reduceMotion = useReducedMotion();
   const vaultPk = useMemo(
@@ -48,7 +51,7 @@ export default function RevealPage() {
   const sealed =
     status === "Open" || status === "Ended" || status === "Abandoned";
   const needsPeekClose = status === "Revealed" && Boolean(myPeek.data);
-  const settled = status === "Settled" || status === "Closed";
+  const settled = status === "Settled";
   const revealing = status === "Revealed";
   const instant = Boolean(reduceMotion || skipAnim);
   const sealedSlots = Math.max(0, Number(vaultQ.data?.itemCount ?? 0));
@@ -56,7 +59,7 @@ export default function RevealPage() {
     !sealed &&
     cards.length > 0 &&
     Boolean(vaultQ.data?.winner) &&
-    (revealing || settled);
+    settled;
   const pack = usePackPopup({
     vaultId: id,
     winner: vaultQ.data?.winner,
@@ -64,6 +67,16 @@ export default function RevealPage() {
     ready: packReady,
     highestBid: vaultQ.data?.highestBid,
   });
+  const isWinner =
+    Boolean(publicKey) &&
+    vaultQ.data?.winner === publicKey?.toBase58();
+  const packScore =
+    isWinner && cards.length > 0
+      ? scorePack({
+          highestBidRaw: vaultQ.data?.highestBid,
+          cards,
+        })
+      : null;
 
   return (
     <PageEnter className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -99,6 +112,11 @@ export default function RevealPage() {
                 ? "Cards are visible. Ownership finishes after settle. If you bought a peek, release it so the next lot can start."
                 : "Almost done — one more settlement step."}
           </p>
+          {packScore && (
+            <p className="mt-3 text-[15px] font-medium leading-snug text-ink">
+              {formatPackScoreLine(packScore)}
+            </p>
+          )}
         </div>
       )}
 
@@ -285,6 +303,7 @@ export default function RevealPage() {
         <PackPopup
           vaultId={id}
           cards={cards}
+          highestBidRaw={vaultQ.data?.highestBid}
           onClose={pack.dismiss}
           onViewHistory={() => {
             pack.dismiss();

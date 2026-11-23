@@ -15,6 +15,7 @@ import {
 } from "@magicblock-labs/ephemeral-rollups-sdk";
 import {
   Connection,
+  Keypair,
   PublicKey,
   SystemProgram,
   Transaction,
@@ -31,10 +32,9 @@ function arg(name: string, fallback?: string): string {
   return fallback ?? "";
 }
 
-async function main() {
-  const amountScrip = Number(arg("amount", "25"));
+export async function demoBid(bidWallet?: Keypair, amountScrip = Number(arg("amount", "25"))) {
   const amount = BigInt(Math.round(amountScrip * 1_000_000));
-  const { program, wallet, connection } = solanaProvider();
+  const { program, wallet, connection } = solanaProvider(bidWallet);
   const house = housePda();
   const houseAcct = await (program.account as any).house.fetch(house);
   const scripMint = houseAcct.scripMint as PublicKey;
@@ -146,7 +146,9 @@ async function main() {
   console.log("bid_count", after.bidCount);
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+if (process.argv[1]?.replaceAll("\\", "/").endsWith("/scripts/demo-bid.ts")) {
+  demoBid().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}

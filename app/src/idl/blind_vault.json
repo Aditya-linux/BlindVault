@@ -306,6 +306,142 @@
       "args": []
     },
     {
+      "name": "clear_reserved_items",
+      "docs": [
+        "Recover inventory from an abandoned Devnet round without marking it sold."
+      ],
+      "discriminator": [
+        52,
+        11,
+        194,
+        58,
+        225,
+        234,
+        71,
+        200
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "house",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  117,
+                  115,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool_ledger",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  118,
+                  57
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "house"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "indices",
+          "type": {
+            "vec": "u16"
+          }
+        }
+      ]
+    },
+    {
+      "name": "close_contents_permission",
+      "docs": [
+        "Remove the now-public contents ACL in its own transaction before undelegation."
+      ],
+      "discriminator": [
+        136,
+        3,
+        80,
+        93,
+        148,
+        183,
+        190,
+        20
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "signer": true
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "hints",
+          "writable": true
+        },
+        {
+          "name": "contents",
+          "writable": true
+        },
+        {
+          "name": "pool_ledger",
+          "writable": true
+        },
+        {
+          "name": "contents_permission",
+          "writable": true
+        },
+        {
+          "name": "pool_permission",
+          "writable": true
+        },
+        {
+          "name": "ephemeral_vault",
+          "writable": true,
+          "address": "MagicVau1t999999999999999999999999999999999"
+        },
+        {
+          "name": "permission_program",
+          "address": "ACLseoPoyC3cBqoUtkbjZ4aDrkurZW86v19pXz2XQnp1"
+        },
+        {
+          "name": "magic_program",
+          "address": "Magic11111111111111111111111111111111111111"
+        },
+        {
+          "name": "magic_context",
+          "writable": true,
+          "address": "MagicContext1111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "close_peek",
       "discriminator": [
         86,
@@ -514,6 +650,72 @@
       "args": []
     },
     {
+      "name": "close_pool_permission",
+      "docs": [
+        "The pool must return to base Solana with the vault so the next round",
+        "can delegate a fresh TEE clone instead of reusing an orphaned one."
+      ],
+      "discriminator": [
+        230,
+        125,
+        210,
+        214,
+        55,
+        223,
+        220,
+        185
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "signer": true
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "hints",
+          "writable": true
+        },
+        {
+          "name": "contents",
+          "writable": true
+        },
+        {
+          "name": "pool_ledger",
+          "writable": true
+        },
+        {
+          "name": "contents_permission",
+          "writable": true
+        },
+        {
+          "name": "pool_permission",
+          "writable": true
+        },
+        {
+          "name": "ephemeral_vault",
+          "writable": true,
+          "address": "MagicVau1t999999999999999999999999999999999"
+        },
+        {
+          "name": "permission_program",
+          "address": "ACLseoPoyC3cBqoUtkbjZ4aDrkurZW86v19pXz2XQnp1"
+        },
+        {
+          "name": "magic_program",
+          "address": "Magic11111111111111111111111111111111111111"
+        },
+        {
+          "name": "magic_context",
+          "writable": true,
+          "address": "MagicContext1111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "close_round",
       "discriminator": [
         149,
@@ -524,6 +726,72 @@
         226,
         234,
         37
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "signer": true
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "hints",
+          "writable": true
+        },
+        {
+          "name": "contents",
+          "writable": true
+        },
+        {
+          "name": "pool_ledger",
+          "writable": true
+        },
+        {
+          "name": "contents_permission",
+          "writable": true
+        },
+        {
+          "name": "pool_permission",
+          "writable": true
+        },
+        {
+          "name": "ephemeral_vault",
+          "writable": true,
+          "address": "MagicVau1t999999999999999999999999999999999"
+        },
+        {
+          "name": "permission_program",
+          "address": "ACLseoPoyC3cBqoUtkbjZ4aDrkurZW86v19pXz2XQnp1"
+        },
+        {
+          "name": "magic_program",
+          "address": "Magic11111111111111111111111111111111111111"
+        },
+        {
+          "name": "magic_context",
+          "writable": true,
+          "address": "MagicContext1111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "commit_closed_round",
+      "docs": [
+        "Commit in a separate transaction from the state writes in close_round.",
+        "The TEE rejected a MagicIntent CPI when those writes shared its transaction."
+      ],
+      "discriminator": [
+        104,
+        63,
+        16,
+        42,
+        31,
+        214,
+        12,
+        242
       ],
       "accounts": [
         {
@@ -2331,7 +2599,7 @@
                   108,
                   95,
                   118,
-                  52
+                  57
                 ]
               },
               {
@@ -2499,6 +2767,100 @@
         {
           "name": "do_delegate",
           "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "pay_winning_bid",
+      "docs": [
+        "Winner pays on base Solana after reveal. The TEE cannot write the",
+        "house treasury ATA, so its settle instruction verifies this receipt."
+      ],
+      "discriminator": [
+        88,
+        225,
+        40,
+        60,
+        238,
+        33,
+        44,
+        114
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "house",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  117,
+                  115,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault"
+        },
+        {
+          "name": "payment_receipt",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  121,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "account",
+                "path": "payer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payer_scrip",
+          "writable": true
+        },
+        {
+          "name": "treasury",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
         }
       ]
     },
@@ -2908,7 +3270,7 @@
                   108,
                   95,
                   118,
-                  52
+                  57
                 ]
               },
               {
@@ -3051,6 +3413,34 @@
           "writable": true
         },
         {
+          "name": "payment_receipt",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  121,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lot"
+              },
+              {
+                "kind": "account",
+                "path": "lot.winner",
+                "account": "Vault"
+              }
+            ]
+          }
+        },
+        {
           "name": "escrow",
           "docs": [
             "Winner SCRIP ATA (bid.escrow) — vault is SPL delegate from place_bid"
@@ -3058,8 +3448,7 @@
           "writable": true
         },
         {
-          "name": "treasury",
-          "writable": true
+          "name": "treasury"
         },
         {
           "name": "permission_program",
@@ -3209,6 +3598,19 @@
         254,
         86,
         216
+      ]
+    },
+    {
+      "name": "PaymentReceipt",
+      "discriminator": [
+        168,
+        198,
+        209,
+        4,
+        60,
+        235,
+        126,
+        109
       ]
     },
     {
@@ -3412,36 +3814,41 @@
     },
     {
       "code": 6029,
+      "name": "UnclosedPermission",
+      "msg": "Ephemeral permissions must close before commit"
+    },
+    {
+      "code": 6030,
       "name": "NotUndelegated",
       "msg": "Vault not undelegated yet"
     },
     {
-      "code": 6030,
+      "code": 6031,
       "name": "ItemMismatch",
       "msg": "Item mismatch on finalize"
     },
     {
-      "code": 6031,
+      "code": 6032,
       "name": "FaucetCooldown",
       "msg": "Faucet cooldown active"
     },
     {
-      "code": 6032,
+      "code": 6033,
       "name": "MathOverflow",
       "msg": "Math overflow"
     },
     {
-      "code": 6033,
+      "code": 6034,
       "name": "InvalidAmount",
       "msg": "Invalid amount"
     },
     {
-      "code": 6034,
+      "code": 6035,
       "name": "MintMismatch",
       "msg": "Mint mismatch"
     },
     {
-      "code": 6035,
+      "code": 6036,
       "name": "InvalidTokenOwner",
       "msg": "Invalid token owner"
     }
@@ -3607,6 +4014,33 @@
           {
             "name": "owner",
             "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PaymentReceipt",
+      "docs": [
+        "Base Solana proof that the winner paid SCRIP into the house treasury."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "payer",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
           },
           {
             "name": "bump",

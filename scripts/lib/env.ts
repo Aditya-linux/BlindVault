@@ -68,13 +68,14 @@ export function solanaProvider(keypair?: Keypair): {
 export const SEEDS = {
   house: Buffer.from("house"),
   item: Buffer.from("item"),
-  pool: Buffer.from("pool_v4"),
+  pool: Buffer.from("pool_v9"),
   vault: Buffer.from("vault"),
   hints: Buffer.from("hints"),
   contents: Buffer.from("contents"),
   bid: Buffer.from("bid"),
   peek: Buffer.from("peek"),
   faucet: Buffer.from("faucet"),
+  payment: Buffer.from("payment"),
 };
 
 export function housePda(): PublicKey {
@@ -115,4 +116,11 @@ export function itemPda(index: number): PublicKey {
   const buf = Buffer.alloc(2);
   buf.writeUInt16LE(index);
   return PublicKey.findProgramAddressSync([SEEDS.item, buf], PROGRAM_ID)[0];
+}
+
+export function paymentReceiptPda(vault: PublicKey, payer: PublicKey): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [SEEDS.payment, vault.toBuffer(), payer.toBuffer()],
+    PROGRAM_ID,
+  )[0];
 }

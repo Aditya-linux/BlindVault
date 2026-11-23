@@ -1,37 +1,64 @@
-/** Remember which lots this browser/wallet sealed-bid on (Claim UX). */
+/** Remember sealed bids in this browser (Me / Claim UX). Devnet only. */
 
-const KEY = "bv_my_bids";
+const KEY = "bv_my_bids_v2";
+const LEGACY_KEY = "bv_my_bids";
 
-type BidMemory = Record<string, number[]>; // owner -> vaultIds
+export type RememberedBid = {
+  vaultId: number;
+  amountScrip?: number;
+  at: number;
+};
 
-function read(): BidMemory {
+type Store = Record<string, RememberedBid[]>; // owner -> bids
+
+function read(): Store {
   if (typeof window === "undefined") return {};
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as BidMemory;
-    return parsed && typeof parsed === "object" ? parsed : {};
+    if (raw) {
+      const parsed = JSON.parse(raw) as Store;
+      return parsed && typeof parsed === "object" ? parsed : {};
+    }
+    // Migrate v1 (owner -> number[])
+    const legacy = localStorage.getItem(LEGACY_KEY);
+    if (!legacy) return {};
+    const old = JSON.parse(legacy) as Record<string, number[]>;
+    const next: Store = {};
+    for (const [owner, ids] of Object.entries(old)) {
+      next[owner] = (ids ?? []).map((vaultId) => ({
+        vaultId,
+        at: Date.now(),
+      }));
+    }
+    write(next);
+    return next;
   } catch {
     return {};
   }
 }
 
-function write(data: BidMemory) {
+function write(data: Store) {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(KEY, JSON.stringify(data));
   } catch {
-    /* ignore quota */
+    /* ignore */
   }
 }
 
-export function rememberMyBid(owner: string, vaultId: number) {
+export function rememberMyBid(
+  owner: string,
+  vaultId: number,
+  amountScrip?: number,
+) {
   const data = read();
   const list = data[owner] ?? [];
-  if (!list.includes(vaultId)) {
-    data[owner] = [vaultId, ...list].slice(0, 40);
-    write(data);
-  }
+  const rest = list.filter((b) => b.vaultId !== vaultId);
+  data[owner] = [
+    { vaultId, amountScrip, at: Date.now() },
+    ...rest,
+  ].slice(0, 40);
+  write(data);
 }
 
 export function rememberedBidOnLot(
@@ -39,5 +66,12 @@ export function rememberedBidOnLot(
   vaultId: number,
 ): boolean {
   if (!owner) return false;
-  return (read()[owner] ?? []).includes(vaultId);
+  return (read()[owner] ?? []).some((b) => b.vaultId === vaultId);
+}
+
+export function listRememberedBids(
+  owner: string | null | undefined,
+): RememberedBid[] {
+  if (!owner) return [];
+  return read()[owner] ?? [];
 }

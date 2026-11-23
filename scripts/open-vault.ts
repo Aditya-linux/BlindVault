@@ -28,6 +28,7 @@ import {
   TEE_RPC,
   vaultPda,
 } from "./lib/env";
+import { releaseAllReserved } from "./lib/releaseReserved";
 
 function arg(name: string, fallback?: string): string | null {
   const i = process.argv.indexOf(`--${name}`);
@@ -196,7 +197,22 @@ async function main() {
 
   // Delegation clones are eventually consistent — never init permission on a
   // missing contents account (that left Open vaults with MISSING contents).
-  for (let i = 0; i < 30; i++) {
+  // A private pool can return null to getAccountInfo even when it is cloned.
+  // Permission initialization and fill below verify that it is usable.
+  async function touch(pk: PublicKey, label: string) {
+    try {
+      const touchSig = await (teeProgram.methods as any)
+        .touchAccount()
+        .accounts({ account: pk })
+        .rpc();
+      console.log(`touch_account ${label}`, touchSig);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.log(`touch ${label} skip:`, msg.slice(0, 120));
+    }
+  }
+
+  for (let i = 0; i < 20; i++) {
     const [vInfo, cInfo, hInfo] = await Promise.all([
       teeConn.getAccountInfo(vault),
       teeConn.getAccountInfo(contents),
@@ -206,8 +222,13 @@ async function main() {
       console.log("tee clones ready after", i * 2, "s");
       break;
     }
-    if (i === 0) console.log("waiting for TEE clones (vault/hints/contents)…");
-    if (i === 29) {
+    if (i === 0) {
+      console.log("waiting for TEE clones (vault/hints/contents)…");
+    }
+    if (!cInfo) await touch(contents, "contents");
+    if (!hInfo) await touch(hints, "hints");
+    if (!vInfo) await touch(vault, "vault");
+    if (i === 19) {
       throw new Error(
         `TEE clone timeout — vault=${!!vInfo} hints=${!!hInfo} contents=${!!cInfo}`,
       );
@@ -228,7 +249,7 @@ async function main() {
           itemCount: Number(existing.itemCount),
           minBid: Number(existing.minBid) / 1_000_000,
         });
-        return;
+        process.exit(0);
       }
       throw new Error(
         "Vault Open on TEE but contents missing — clear active and open next id",
@@ -285,11 +306,42 @@ async function main() {
     console.log("init_pool_permission skipped:", msg.slice(0, 160));
   }
 
+  // Force-clear without close_round can leave reserved bits set → NotEnoughItems.
+  // Sweep free those slots before fill (Devnet only).
+  try {
+    await releaseAllReserved({
+      teeProgram,
+      authority: wallet.publicKey,
+      house,
+      poolLedger,
+    });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.log("release reserved skip:", msg.slice(0, 160));
+  }
+
   const clientSeed = Math.floor(Math.random() * 256);
-  const fillSig = await (teeProgram.methods as any)
-    .fillVault(clientSeed)
-    .accounts({ vault, hints, contents, poolLedger })
-    .rpc();
+  let fillSig: string;
+  try {
+    fillSig = await (teeProgram.methods as any)
+      .fillVault(clientSeed)
+      .accounts({ vault, hints, contents, poolLedger })
+      .rpc();
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (!/Not enough|NotEnoughItems|6006/i.test(msg)) throw e;
+    console.log("fill_vault NotEnoughItems → release reserved + retry");
+    await releaseAllReserved({
+      teeProgram,
+      authority: wallet.publicKey,
+      house,
+      poolLedger,
+    });
+    fillSig = await (teeProgram.methods as any)
+      .fillVault(clientSeed)
+      .accounts({ vault, hints, contents, poolLedger })
+      .rpc();
+  }
   console.log("fill_vault", fillSig, "seed", clientSeed);
 
   const opened = await (teeProgram.account as any).vault.fetch(vault);

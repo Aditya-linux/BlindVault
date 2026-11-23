@@ -20,6 +20,19 @@ impl House {
     pub const LEN: usize = 32 + 32 + 32 + 2 + 8 + 32 + (8 * 3) + (8 * 3) + (8 * 3) + 2 + 1;
 }
 
+/// Base Solana proof that the winner paid SCRIP into the house treasury.
+#[account]
+pub struct PaymentReceipt {
+    pub vault: Pubkey,
+    pub payer: Pubkey,
+    pub amount: u64,
+    pub bump: u8,
+}
+
+impl PaymentReceipt {
+    pub const LEN: usize = 32 + 32 + 8 + 1;
+}
+
 #[account]
 pub struct Item {
     pub house: Pubkey,

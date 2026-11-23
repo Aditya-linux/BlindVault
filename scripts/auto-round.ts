@@ -60,6 +60,11 @@ async function main() {
   console.log("operator", wallet.publicKey.toBase58());
   console.log("auto-round · resilient loop (RPC errors retry, do not exit)");
 
+  /** Same non-Open active vault for this long → force-clear + open next. */
+  const STUCK_MS = Number(process.env.AUTO_ROUND_STUCK_MS ?? 3 * 60_000);
+  let stuckKey: string | null = null;
+  let stuckSince = 0;
+
   for (;;) {
     try {
       const house = await (program.account as any).house.fetch(housePk);
@@ -67,6 +72,7 @@ async function main() {
       const nextId = Number(house.nextVaultId);
 
       if (active.equals(PublicKey.default)) {
+        stuckKey = null;
         console.log(
           `[${new Date().toISOString()}] no active vault → open next (${nextId})`,
         );
@@ -109,10 +115,57 @@ async function main() {
 
       // Actual bidding window — keep logging so operators know Join is live.
       if (status === "open" && left > 0) {
+        stuckKey = null;
         console.log(
           `[${new Date().toISOString()}] lot ${id} OPEN · bidding ends in ${left}s`,
         );
         await sleep(Math.min(15_000, Math.max(3_000, left * 1000)));
+        continue;
+      }
+
+      // Mid-open (create/delegate done, fill not finished) — resume immediately.
+      if (
+        status === "delegated" ||
+        status === "filling" ||
+        status === "created"
+      ) {
+        stuckKey = null;
+        console.log(
+          `[${new Date().toISOString()}] lot ${id} ${status} → resume open-vault`,
+        );
+        const openCode = run("scripts/open-vault.ts", ["--size", "0"], 120_000);
+        if (openCode !== 0) {
+          console.log(
+            `[${new Date().toISOString()}] resume open failed — clear + retry next tick`,
+          );
+          run("scripts/debug/_clear-active.ts", [], 60_000);
+          await sleep(5_000);
+        } else {
+          await sleep(5_000);
+        }
+        continue;
+      }
+
+      const key = `${active.toBase58()}:${status}`;
+      if (stuckKey !== key) {
+        stuckKey = key;
+        stuckSince = Date.now();
+      } else if (Number(vault.bidCount) === 0 && status !== "closed" && status !== "revealed" && Date.now() - stuckSince >= STUCK_MS) {
+        console.log(
+          `[${new Date().toISOString()}] lot ${id} stuck ${status} >${STUCK_MS / 1000}s → force_clear + open`,
+        );
+        run("scripts/debug/_clear-active.ts", [], 60_000);
+        stuckKey = null;
+        await sleep(3_000);
+        const openCode = run("scripts/open-vault.ts", ["--size", "0"], 120_000);
+        if (openCode !== 0) {
+          console.log(
+            `[${new Date().toISOString()}] open failed after unstick — retry in 15s`,
+          );
+          await sleep(15_000);
+        } else {
+          await sleep(8_000);
+        }
         continue;
       }
 

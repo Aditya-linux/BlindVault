@@ -53,16 +53,12 @@ export default function WarehousePage() {
         </div>
       </header>
 
-      <section
-        aria-label="Rarity odds"
-        className="odds-board"
-      >
-        <p className="odds-board__title">How rare?</p>
+      <section aria-label="Rarity tiers" className="odds-board">
+        <p className="odds-board__title">Rarity tiers</p>
         <ul className="odds-board__list">
           {RARITY_TIERS.map((tier) => (
             <li key={tier.id} className={`odds-board__item rarity-${tier.id}`}>
               <span className="odds-board__label">{tier.label}</span>
-              <span className="odds-board__chance">{tier.chance}</span>
             </li>
           ))}
         </ul>

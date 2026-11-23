@@ -16,12 +16,16 @@ import {
 } from "@/hooks/useItemsOnChain";
 import { useMyWinnings } from "@/hooks/useMyWinnings";
 import { housePda, vaultPda } from "@/lib/pdas";
-import { shortAddr } from "@/lib/format";
 import {
   formatPackLine,
   loadPacksForOwner,
   type PackRecord,
 } from "@/lib/packHistory";
+import {
+  listRememberedBids,
+  type RememberedBid,
+} from "@/lib/bidMemory";
+import { formatPackScoreLine, scorePack } from "@/lib/packScore";
 import { stackInventory } from "@/lib/stackInventory";
 import { useTeeAuth } from "@/hooks/useTeeAuth";
 import { MotionNavLink, PageEnter, soft, motion } from "@/components/motion";
@@ -38,10 +42,8 @@ export default function MePage() {
   const allItems = useItemsOnChain();
   const winnings = useMyWinnings(owner);
   const [localPacks, setLocalPacks] = useState<PackRecord[]>([]);
+  const [remembered, setRemembered] = useState<RememberedBid[]>([]);
 
-  useEffect(() => {
-    setLocalPacks(loadPacksForOwner(owner));
-  }, [owner, winnings.dataUpdatedAt]);
   const vaultId =
     active.data && active.data.nextVaultId > 1
       ? active.data.nextVaultId - 1
@@ -54,6 +56,11 @@ export default function MePage() {
   const closer = useLotCloser(vaultLive.data);
 
   useEffect(() => {
+    setLocalPacks(loadPacksForOwner(owner));
+    setRemembered(listRememberedBids(owner));
+  }, [owner, winnings.dataUpdatedAt, tee.token, myBid.dataUpdatedAt]);
+
+  useEffect(() => {
     if (
       closer.completedVaultId != null &&
       vaultId != null &&
@@ -62,6 +69,11 @@ export default function MePage() {
       router.push(`/vault/${vaultId}/reveal`);
     }
   }, [closer.completedVaultId, vaultId, router]);
+
+  const rememberedOnLive =
+    owner && vaultId != null
+      ? remembered.find((b) => b.vaultId === vaultId)
+      : undefined;
 
   const collection = useMemo(() => {
     const byIndex = new Map<
@@ -87,8 +99,8 @@ export default function MePage() {
       });
     }
 
-    // Pending / revealed wins before Item.owner updates (or if inventory RPC flakes).
     for (const lot of winnings.data ?? []) {
+      if (!lot.settled) continue;
       for (const card of resolveRevealedCards(
         lot.revealedItems,
         allItems.data,
@@ -116,36 +128,52 @@ export default function MePage() {
     return map;
   }, [localPacks]);
 
+  const pastRemembered = remembered.filter((b) => b.vaultId !== vaultId);
+
   return (
-    <PageEnter className="mx-auto flex max-w-2xl flex-col gap-6">
+    <PageEnter className="mx-auto flex max-w-2xl flex-col gap-12">
       <header>
         <h1 className="font-display text-4xl tracking-[-0.03em]">My bids</h1>
-        <p className="mt-2 text-[15px] text-steel-deep">
-          Your current bid, the cards you won, and a history of packs you
-          opened.
+        <p className="mt-2 max-w-md text-[15px] leading-relaxed text-steel-deep">
+          Your sealed bid, packs you claimed, and a quick note on play money.
         </p>
       </header>
 
-      <section className="bv-card p-6">
-        <h2 className="text-[13px] font-medium text-steel-deep">Current bid</h2>
+      <p className="border-l border-accent/40 pl-4 text-[13px] leading-relaxed text-steel-deep">
+        <span className="font-medium text-ink">SCRIP</span> is Blind Vault’s
+        free Devnet play token — not real money. Claim it on{" "}
+        <MotionNavLink href="/paddle" className="font-medium text-accent">
+          Paddle
+        </MotionNavLink>
+        , bid with it, win cards. Nothing here has cash value.
+      </p>
+
+      <section>
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="font-display text-2xl tracking-[-0.03em]">
+            Current bid
+          </h2>
+          {vaultId != null && hasActive && (
+            <span className="font-mono text-[11px] text-steel">
+              Lot {vaultId}
+              {vaultLive.data?.status ? ` · ${vaultLive.data.status}` : ""}
+            </span>
+          )}
+        </div>
+
         {!connected && (
-          <div className="mt-4 flex flex-col gap-3">
+          <div className="mt-5 flex flex-col gap-3">
             <p className="text-[14px] text-steel-deep">
-              Connect a Devnet wallet to see your bids and cards.
+              Connect a Devnet wallet to see your sealed bid.
             </p>
             <WalletButton />
-            <MotionNavLink
-              href="/paddle"
-              className={cn(buttonVariants({ variant: "paper", size: "sm" }), "w-fit")}
-            >
-              Set up to bid
-            </MotionNavLink>
           </div>
         )}
+
         {connected && !tee.token && (
-          <div className="mt-4 flex flex-col gap-3">
+          <div className="mt-5 flex flex-col gap-3">
             <p className="text-[14px] text-steel-deep">
-              Sign in once so we can show your private bid.
+              Sign in once — sealed bids stay private until you do.
             </p>
             <Button
               variant="paper"
@@ -157,62 +185,127 @@ export default function MePage() {
             </Button>
           </div>
         )}
-        {myBid.data ? (
+
+        {connected && tee.token && myBid.isLoading && (
+          <p className="mt-5 text-[14px] text-steel-deep">Loading your bid…</p>
+        )}
+
+        {connected && tee.token && myBid.data && vaultId != null && (
           <motion.div
-            className="mt-4"
-            initial={{ opacity: 0, y: 8 }}
+            className="mt-5"
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={soft}
           >
-            <p className="text-[15px] font-medium">
-              Lot {vaultId} · {myBid.data.amount / 1_000_000} SCRIP
+            <p className="text-[22px] font-medium tabular-nums text-ink">
+              {myBid.data.amount / 1_000_000}{" "}
+              <span className="text-[14px] font-normal text-steel-deep">
+                SCRIP sealed
+              </span>
             </p>
-            <p className="mt-1 font-mono text-[11px] text-steel">
-              {shortAddr(myBid.data.publicKey)} · only you can see this amount
+            <p className="mt-1 text-[13px] text-steel-deep">
+              Only you can see this amount until reveal.
             </p>
             <MotionNavLink
               href={`/vault/${vaultId}`}
-              className="mt-3 inline-block text-[13px] font-medium text-accent"
+              className="mt-4 inline-block text-[14px] font-medium text-accent"
             >
-              Open lot
+              Open lot {vaultId} →
             </MotionNavLink>
           </motion.div>
-        ) : (
-          connected &&
-          tee.token && (
-            <div className="mt-4">
-              <p className="text-[14px] text-steel-deep">
-                No bid on the current lot yet.
+        )}
+
+        {connected &&
+          tee.token &&
+          !myBid.isLoading &&
+          !myBid.data &&
+          rememberedOnLive &&
+          vaultId != null && (
+            <div className="mt-5">
+              <p className="text-[15px] font-medium text-ink">
+                You sealed a bid on lot {vaultId}
+                {rememberedOnLive.amountScrip != null
+                  ? ` · ~${rememberedOnLive.amountScrip} SCRIP`
+                  : ""}
+              </p>
+              <p className="mt-1 text-[13px] text-steel-deep">
+                Saved on this device. Open the lot (and Sign in) to refresh the
+                private amount from TEE.
               </p>
               <MotionNavLink
-                href={vaultId ? `/vault/${vaultId}` : "/paddle"}
-                className="mt-3 inline-block text-[13px] font-medium text-accent"
+                href={`/vault/${vaultId}`}
+                className="mt-4 inline-block text-[14px] font-medium text-accent"
               >
-                {vaultId ? `Go to lot ${vaultId}` : "Set up to bid"}
+                Open lot {vaultId} →
               </MotionNavLink>
             </div>
-          )
-        )}
-        {myBid.isError && (
-          <p className="mt-3 font-mono text-[11px] text-stamp-red-deep">
-            Couldn’t read your bid — sign in again or refresh.
-          </p>
+          )}
+
+        {connected &&
+          tee.token &&
+          !myBid.isLoading &&
+          !myBid.data &&
+          !rememberedOnLive && (
+            <div className="mt-5">
+              <p className="text-[14px] text-steel-deep">
+                {hasActive && vaultId
+                  ? "No sealed bid on the live lot from this wallet."
+                  : "No live lot right now — check Home when Join appears."}
+              </p>
+              <MotionNavLink
+                href={vaultId && hasActive ? `/vault/${vaultId}` : "/"}
+                className="mt-3 inline-block text-[14px] font-medium text-accent"
+              >
+                {vaultId && hasActive ? `Go to lot ${vaultId}` : "Home"}
+              </MotionNavLink>
+            </div>
+          )}
+
+        {pastRemembered.length > 0 && (
+          <ul className="mt-8 space-y-3 border-t border-line/70 pt-6">
+            <li className="text-[11px] font-medium uppercase tracking-[0.12em] text-steel">
+              Recent bids on this device
+            </li>
+            {pastRemembered.slice(0, 5).map((b) => (
+              <li
+                key={b.vaultId}
+                className="flex flex-wrap items-baseline justify-between gap-2 text-[14px]"
+              >
+                <span className="text-ink">
+                  Lot {b.vaultId}
+                  {b.amountScrip != null ? (
+                    <span className="text-steel-deep">
+                      {" "}
+                      · {b.amountScrip} SCRIP
+                    </span>
+                  ) : null}
+                </span>
+                <MotionNavLink
+                  href={`/vault/${b.vaultId}`}
+                  className="font-medium text-accent"
+                >
+                  Open
+                </MotionNavLink>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 
-      {closer.needsAction && vaultId != null && (
-        <section className="bv-card flex flex-col gap-3 border-accent/45 bg-[color-mix(in_oklab,var(--color-accent)_14%,transparent)] p-6">
-          <h2 className="font-display text-2xl tracking-[-0.02em]">
+      {closer.needsAction &&
+        vaultId != null &&
+        !history.some((h) => h.vaultId === vaultId) && (
+        <section className="border-t border-accent/30 pt-8">
+          <h2 className="font-display text-2xl tracking-[-0.03em]">
             Claim lot {vaultId}
           </h2>
-          <p className="text-[14px] text-steel-deep">
-            The timer ended. Packs you won only appear after you close the sealed
-            bid (the house can’t open a stranger’s private bid). One tap runs
-            close → reveal → settle.
+          <p className="mt-2 max-w-md text-[14px] text-steel-deep">
+            Timer’s up. Tap Claim, then approve in Phantom — you’ll see the
+            pack next.
           </p>
           <Button
             size="lg"
-            className="w-fit"
+            className="mt-5"
             disabled={closer.busy}
             onClick={() => void closer.run()}
           >
@@ -223,44 +316,33 @@ export default function MePage() {
                 : "Claim my pack"}
           </Button>
           {closer.busy && closer.phase && (
-            <p className="text-[13px] text-steel-deep">{closer.phase}</p>
+            <p className="mt-2 text-[13px] text-steel-deep">{closer.phase}</p>
           )}
           {closer.error && (
             <p
               role="alert"
-              className="text-[13px] font-medium text-stamp-red-deep"
+              className="mt-2 text-[13px] font-medium text-stamp-red-deep"
             >
               {closer.error}
             </p>
           )}
-          <MotionNavLink
-            href={`/vault/${vaultId}/reveal`}
-            className="text-[13px] font-medium text-accent"
-          >
-            Open results page
-          </MotionNavLink>
         </section>
       )}
 
-      <section className="bv-card p-6">
-        <h2 className="font-display text-2xl tracking-[-0.02em]">Your cards</h2>
+      <section>
+        <h2 className="font-display text-2xl tracking-[-0.03em]">Your cards</h2>
         <p className="mt-1 text-[13px] text-steel-deep">
-          Cards from auctions you won. Duplicates show as Name ×N.
+          Cards whose ownership finalized on Solana.
         </p>
         {connected && (inventory.isLoading || winnings.isLoading) && (
-          <p className="mt-5 text-[14px] text-steel-deep">Loading cards…</p>
-        )}
-        {connected && inventory.isError && winnings.isError && (
-          <p className="mt-5 font-mono text-[12px] text-stamp-red-deep">
-            Couldn’t load cards — refresh to retry.
-          </p>
+          <p className="mt-5 text-[14px] text-steel-deep">Loading…</p>
         )}
         {connected &&
           !inventory.isLoading &&
           !winnings.isLoading &&
           collection.length === 0 && (
             <p className="mt-5 text-[14px] text-steel-deep">
-              Empty for now. Win a lot and your cards show up here after reveal.
+              Empty for now — win a lot, claim the pack, cards land here.
             </p>
           )}
         {connected && collection.length > 0 && (
@@ -280,38 +362,23 @@ export default function MePage() {
             ))}
           </ul>
         )}
-        <MotionNavLink
-          href="/warehouse"
-          className="mt-4 inline-block text-[13px] font-medium text-accent"
-        >
-          Browse cards
-        </MotionNavLink>
       </section>
 
-      <section id="winnings" className="bv-card scroll-mt-24 p-6">
-        <h2 className="font-display text-2xl tracking-[-0.02em]">
+      <section id="winnings" className="scroll-mt-24">
+        <h2 className="font-display text-2xl tracking-[-0.03em]">
           Packs you won
         </h2>
         <p className="mt-1 text-[13px] text-steel-deep">
-          Lots you won, with the cards you packed. Appears after you claim
-          (close → reveal) on a finished lot you bid on.
+          After you claim on a finished lot.
         </p>
-        {connected && winnings.isLoading && (
-          <p className="mt-5 text-[14px] text-steel-deep">Loading history…</p>
-        )}
-        {connected && winnings.isError && (
-          <p className="mt-5 font-mono text-[12px] text-stamp-red-deep">
-            Couldn’t load history — refresh to retry.
-          </p>
-        )}
         {connected &&
           !winnings.isLoading &&
           history.length === 0 &&
           localPacks.length === 0 && (
-            <p className="mt-5 text-[14px] text-steel-deep">No wins yet.</p>
+            <p className="mt-5 text-[14px] text-steel-deep">No packs yet.</p>
           )}
         {connected && (history.length > 0 || localPacks.length > 0) && (
-          <ul className="mt-5 flex flex-col gap-3">
+          <ul className="mt-6 divide-y divide-line/70 border-y border-line/70">
             {history.map((lot) => {
               const cards = resolveRevealedCards(
                 lot.revealedItems,
@@ -329,29 +396,32 @@ export default function MePage() {
                     )
                   : null;
               return (
-                <li
-                  key={lot.vaultId}
-                  className="rounded-2xl border border-line bg-cardboard/80 p-4"
-                >
+                <li key={lot.vaultId} className="py-5">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <p className="text-[15px] font-medium">
+                    <p className="text-[15px] font-medium text-ink">
                       Lot {lot.vaultId}
-                      <span className="ml-2 font-mono text-[11px] font-normal text-steel">
-                        {lot.status}
-                        {lot.abandoned ? " · abandoned" : ""}
-                      </span>
                     </p>
-                    <p className="font-mono text-[12px] text-steel-deep">
+                    <p className="font-mono text-[12px] text-steel">
                       {lot.highestBid / 1_000_000} SCRIP
                     </p>
                   </div>
                   {packLine && (
-                    <p className="mt-2 text-[14px] font-medium text-ink">
+                    <p className="mt-1 text-[14px] text-steel-deep">
                       You packed {packLine}
                     </p>
                   )}
-                  {stacked.length > 0 ? (
-                    <ul className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {stacked.length > 0 && lot.highestBid > 0 && (
+                    <p className="mt-1 text-[13px] font-medium text-ink">
+                      {formatPackScoreLine(
+                        scorePack({
+                          highestBidRaw: lot.highestBid,
+                          cards: stacked,
+                        }),
+                      )}
+                    </p>
+                  )}
+                  {stacked.length > 0 && (
+                    <ul className="mt-3 grid grid-cols-3 gap-2">
                       {stacked.map((item) => (
                         <li key={`${lot.vaultId}-${item.index}`}>
                           <CollectibleCard
@@ -366,11 +436,6 @@ export default function MePage() {
                         </li>
                       ))}
                     </ul>
-                  ) : (
-                    <p className="mt-2 text-[13px] text-steel-deep">
-                      {lot.itemCount} card{lot.itemCount === 1 ? "" : "s"} —
-                      waiting for reveal.
-                    </p>
                   )}
                   <MotionNavLink
                     href={`/vault/${lot.vaultId}/reveal`}
@@ -384,20 +449,10 @@ export default function MePage() {
             {localPacks
               .filter((p) => !history.some((h) => h.vaultId === p.vaultId))
               .map((p) => (
-                <li
-                  key={`local-${p.vaultId}`}
-                  className="rounded-2xl border border-line bg-cardboard/80 p-4"
-                >
+                <li key={`local-${p.vaultId}`} className="py-5">
                   <p className="text-[15px] font-medium">Lot {p.vaultId}</p>
-                  <p className="mt-2 text-[14px] font-medium text-ink">
+                  <p className="mt-1 text-[14px] text-steel-deep">
                     You packed {formatPackLine(p.names)}
-                  </p>
-                  <p className="mt-1 font-mono text-[11px] text-steel">
-                    Saved on this device ·{" "}
-                    {new Date(p.at).toLocaleString(undefined, {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
                   </p>
                   <MotionNavLink
                     href={`/vault/${p.vaultId}/reveal`}

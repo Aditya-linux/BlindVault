@@ -158,7 +158,7 @@ export function usePlaceBid(vault: DecodedVault | null | undefined) {
           },
         );
         setLastSig(result.sig);
-        rememberMyBid(publicKey.toBase58(), vault.id);
+        rememberMyBid(publicKey.toBase58(), vault.id, amountScrip);
         await qc.invalidateQueries({ queryKey: ["vault", vault.publicKey] });
         await qc.invalidateQueries({ queryKey: ["my-bid"] });
         return result;

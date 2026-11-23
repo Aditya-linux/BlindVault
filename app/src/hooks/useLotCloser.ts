@@ -2,7 +2,8 @@
 
 import { useCallback, useRef, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey, SystemProgram } from "@solana/web3.js";
+import { BN } from "@coral-xyz/anchor";
 import {
   EPHEMERAL_VAULT_ID,
   MAGIC_PROGRAM_ID,
@@ -11,7 +12,7 @@ import {
   permissionPdaFromAccount,
 } from "@magicblock-labs/ephemeral-rollups-sdk";
 import { useQueryClient } from "@tanstack/react-query";
-import { teeConnection } from "@/lib/connections";
+import { solana, teeConnection } from "@/lib/connections";
 import { getProgram } from "@/lib/program";
 import {
   associatedTokenPda,
@@ -19,8 +20,9 @@ import {
   contentsPda,
   housePda,
   poolLedgerPda,
+  paymentReceiptPda,
 } from "@/lib/pdas";
-import { sendEr } from "@/lib/tx";
+import { sendEr, sendSolana } from "@/lib/tx";
 import type { DecodedVault } from "@/lib/types";
 import { rememberedBidOnLot } from "@/lib/bidMemory";
 import { useTeeAuth } from "./useTeeAuth";
@@ -82,13 +84,18 @@ export function useLotCloser(vault: DecodedVault | null | undefined) {
     (Boolean(myBid.data) || (vault.bidCount ?? 0) >= 1);
   const canReveal =
     (vault?.status === "Ended" || vault?.status === "Abandoned") &&
-    Boolean(publicKey);
+    Boolean(publicKey) &&
+    // Only the sealed bidder (or sole bidder) needs to drive reveal.
+    (Boolean(myBid.data) || (vault.bidCount ?? 0) <= 1);
+  // Settle closes the bid PDA — once myBid is gone, Claim must disappear.
   const canSettle =
     vault?.status === "Revealed" &&
     Boolean(publicKey) &&
-    (vault.winner === publicKey?.toBase58() ||
-      (vault.bidCount === 1 && Boolean(myBid.data))) &&
-    !vault.abandoned;
+    !vault.abandoned &&
+    Boolean(myBid.data) &&
+    (vault.winner === publicKey?.toBase58() || vault.bidCount === 1);
+  const alreadyDone =
+    completedVaultId != null && vault != null && completedVaultId === vault.id;
 
   const run = useCallback(async () => {
     if (!vault || !publicKey || !signTransaction) return;
@@ -190,14 +197,51 @@ export function useLotCloser(vault: DecodedVault | null | undefined) {
       }
 
       if (status === "Revealed" && !vault.abandoned) {
+        const liveVault = await (program.account as any).vault.fetch(vaultPk);
         const isWinner =
-          vault.winner === publicKey.toBase58() ||
-          vault.status === "Open" ||
-          vault.status === "Ended" ||
-          (vault.bidCount === 1 && Boolean(myBid.data));
+          (liveVault.winner as PublicKey).equals(publicKey) &&
+          Object.keys(liveVault.status)[0] === "revealed";
         if (isWinner) {
           if (!house.data?.scripMint || !house.data.treasury) {
             throw new Error("House mint not loaded — refresh and try again");
+          }
+          const paymentReceipt = paymentReceiptPda(vaultPk, publicKey);
+          const baseProgram = getProgram(solana, wallet);
+          if (!(await solana.getAccountInfo(paymentReceipt))) {
+            setPhase("Pay winning SCRIP on Solana — approve in Phantom");
+            const payIx = await (baseProgram.methods as any)
+              .payWinningBid(new BN(liveVault.highestBid.toString()))
+              .accounts({
+                payer: publicKey,
+                house: housePda(),
+                vault: vaultPk,
+                paymentReceipt,
+                payerScrip: associatedTokenPda(house.data.scripMint, publicKey),
+                treasury: house.data.treasury,
+                tokenProgram: TOKEN_PROGRAM_ID,
+                systemProgram: SystemProgram.programId,
+              })
+              .instruction();
+            const paid = await withTimeout(
+              sendSolana(solana, { publicKey, signTransaction }, [payIx], {
+                vaultId: String(vault.id),
+                label: "pay_winning_bid",
+              }),
+              stepMs,
+              "Paying winning SCRIP",
+            );
+            setSig(paid.sig);
+          }
+          let receiptVisible = false;
+          for (let j = 0; j < 15; j++) {
+            if (await conn.getAccountInfo(paymentReceipt)) {
+              receiptVisible = true;
+              break;
+            }
+            await new Promise((resolve) => setTimeout(resolve, 2_000));
+          }
+          if (!receiptVisible) {
+            throw new Error("Payment confirmed on Solana. TEE is still syncing; tap Claim again shortly.");
           }
           setPhase("Saving your pack — approve in Phantom");
           const winnerAta = associatedTokenPda(
@@ -211,6 +255,7 @@ export function useLotCloser(vault: DecodedVault | null | undefined) {
               lot: vaultPk,
               bid,
               bidPermission: permissionPdaFromAccount(bid),
+              paymentReceipt,
               escrow: winnerAta,
               treasury: house.data.treasury,
               permissionProgram: PERMISSION_PROGRAM_ID,
@@ -271,6 +316,7 @@ export function useLotCloser(vault: DecodedVault | null | undefined) {
     run,
     pastDeadline,
     hasMyBid: Boolean(myBid.data),
-    needsAction: canEnd || canReveal || canSettle,
+    // Hide Claim after a successful run, and after settle (bid PDA closed).
+    needsAction: !alreadyDone && (canEnd || canReveal || canSettle),
   };
 }

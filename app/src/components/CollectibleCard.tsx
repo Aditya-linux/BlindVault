@@ -7,7 +7,6 @@ import { categoryLabel, rarityLabel } from "@/lib/format";
 import {
   creatureDisplayName,
   creatureImageSrc,
-  rarityOddsLabel,
 } from "@/lib/creatureCatalog";
 import { creaturePalette } from "@/lib/creatureArt";
 import { motion, soft } from "@/components/motion";
@@ -135,7 +134,7 @@ export function CollectibleCard({
             {rarityName}
           </span>
           <span className="collectible-card__type">
-            {categoryLabel(category)} · {rarityOddsLabel(rarity)}
+            {categoryLabel(category)}
           </span>
         </div>
 

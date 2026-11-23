@@ -228,7 +228,7 @@ export type BlindVault = {
           "signer": true
         },
         {
-          "name": "vault",
+          "name": "lot",
           "writable": true,
           "pda": {
             "seeds": [
@@ -244,12 +244,12 @@ export type BlindVault = {
               },
               {
                 "kind": "account",
-                "path": "vault.house",
+                "path": "lot.house",
                 "account": "vault"
               },
               {
                 "kind": "account",
-                "path": "vault.id",
+                "path": "lot.id",
                 "account": "vault"
               }
             ]
@@ -277,7 +277,7 @@ export type BlindVault = {
               },
               {
                 "kind": "account",
-                "path": "vault"
+                "path": "lot"
               },
               {
                 "kind": "account",
@@ -288,14 +288,6 @@ export type BlindVault = {
         },
         {
           "name": "peekPermission",
-          "writable": true
-        },
-        {
-          "name": "buyerScrip",
-          "writable": true
-        },
-        {
-          "name": "treasury",
           "writable": true
         },
         {
@@ -312,8 +304,145 @@ export type BlindVault = {
           "address": "ACLseoPoyC3cBqoUtkbjZ4aDrkurZW86v19pXz2XQnp1"
         },
         {
-          "name": "tokenProgram",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+          "name": "vault",
+          "writable": true,
+          "address": "MagicVau1t999999999999999999999999999999999"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "clearReservedItems",
+      "docs": [
+        "Recover inventory from an abandoned Devnet round without marking it sold."
+      ],
+      "discriminator": [
+        52,
+        11,
+        194,
+        58,
+        225,
+        234,
+        71,
+        200
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "house",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  117,
+                  115,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "poolLedger",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  118,
+                  57
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "house"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "indices",
+          "type": {
+            "vec": "u16"
+          }
+        }
+      ]
+    },
+    {
+      "name": "closeContentsPermission",
+      "docs": [
+        "Remove the now-public contents ACL in its own transaction before undelegation."
+      ],
+      "discriminator": [
+        136,
+        3,
+        80,
+        93,
+        148,
+        183,
+        190,
+        20
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "signer": true
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "hints",
+          "writable": true
+        },
+        {
+          "name": "contents",
+          "writable": true
+        },
+        {
+          "name": "poolLedger",
+          "writable": true
+        },
+        {
+          "name": "contentsPermission",
+          "writable": true
+        },
+        {
+          "name": "poolPermission",
+          "writable": true
+        },
+        {
+          "name": "ephemeralVault",
+          "writable": true,
+          "address": "MagicVau1t999999999999999999999999999999999"
+        },
+        {
+          "name": "permissionProgram",
+          "address": "ACLseoPoyC3cBqoUtkbjZ4aDrkurZW86v19pXz2XQnp1"
+        },
+        {
+          "name": "magicProgram",
+          "address": "Magic11111111111111111111111111111111111111"
+        },
+        {
+          "name": "magicContext",
+          "writable": true,
+          "address": "MagicContext1111111111111111111111111111111"
         }
       ],
       "args": []
@@ -332,10 +461,14 @@ export type BlindVault = {
       ],
       "accounts": [
         {
-          "name": "buyer"
+          "name": "buyer",
+          "docs": [
+            "Buyer signs CloseEphemeralPermission (ACL member)."
+          ],
+          "signer": true
         },
         {
-          "name": "vault",
+          "name": "lot",
           "writable": true,
           "pda": {
             "seeds": [
@@ -351,12 +484,12 @@ export type BlindVault = {
               },
               {
                 "kind": "account",
-                "path": "vault.house",
+                "path": "lot.house",
                 "account": "vault"
               },
               {
                 "kind": "account",
-                "path": "vault.id",
+                "path": "lot.id",
                 "account": "vault"
               }
             ]
@@ -378,7 +511,7 @@ export type BlindVault = {
               },
               {
                 "kind": "account",
-                "path": "vault"
+                "path": "lot"
               },
               {
                 "kind": "account",
@@ -392,17 +525,198 @@ export type BlindVault = {
           "writable": true
         },
         {
-          "name": "ephemeralVault",
+          "name": "permissionProgram",
+          "address": "ACLseoPoyC3cBqoUtkbjZ4aDrkurZW86v19pXz2XQnp1"
+        },
+        {
+          "name": "vault",
           "writable": true,
           "address": "MagicVau1t999999999999999999999999999999999"
         },
         {
           "name": "magicProgram",
           "address": "Magic11111111111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "closePeekKeeper",
+      "docs": [
+        "House authority closes a foreign peek after reveal.",
+        "Peek ACL lists the vault PDA as AUTHORITY (same pattern as MB-016 bids),",
+        "so the buyer does not need to be online — unblocks abandoned close_round."
+      ],
+      "discriminator": [
+        52,
+        90,
+        249,
+        83,
+        255,
+        169,
+        106,
+        147
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "house",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  117,
+                  115,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "lot",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lot.house",
+                "account": "vault"
+              },
+              {
+                "kind": "account",
+                "path": "lot.id",
+                "account": "vault"
+              }
+            ]
+          }
+        },
+        {
+          "name": "buyer"
+        },
+        {
+          "name": "peek",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  101,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lot"
+              },
+              {
+                "kind": "account",
+                "path": "buyer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "peekPermission",
+          "writable": true
         },
         {
           "name": "permissionProgram",
           "address": "ACLseoPoyC3cBqoUtkbjZ4aDrkurZW86v19pXz2XQnp1"
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "address": "MagicVau1t999999999999999999999999999999999"
+        },
+        {
+          "name": "magicProgram",
+          "address": "Magic11111111111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "closePoolPermission",
+      "docs": [
+        "The pool must return to base Solana with the vault so the next round",
+        "can delegate a fresh TEE clone instead of reusing an orphaned one."
+      ],
+      "discriminator": [
+        230,
+        125,
+        210,
+        214,
+        55,
+        223,
+        220,
+        185
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "signer": true
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "hints",
+          "writable": true
+        },
+        {
+          "name": "contents",
+          "writable": true
+        },
+        {
+          "name": "poolLedger",
+          "writable": true
+        },
+        {
+          "name": "contentsPermission",
+          "writable": true
+        },
+        {
+          "name": "poolPermission",
+          "writable": true
+        },
+        {
+          "name": "ephemeralVault",
+          "writable": true,
+          "address": "MagicVau1t999999999999999999999999999999999"
+        },
+        {
+          "name": "permissionProgram",
+          "address": "ACLseoPoyC3cBqoUtkbjZ4aDrkurZW86v19pXz2XQnp1"
+        },
+        {
+          "name": "magicProgram",
+          "address": "Magic11111111111111111111111111111111111111"
+        },
+        {
+          "name": "magicContext",
+          "writable": true,
+          "address": "MagicContext1111111111111111111111111111111"
         }
       ],
       "args": []
@@ -418,6 +732,72 @@ export type BlindVault = {
         226,
         234,
         37
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "signer": true
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "hints",
+          "writable": true
+        },
+        {
+          "name": "contents",
+          "writable": true
+        },
+        {
+          "name": "poolLedger",
+          "writable": true
+        },
+        {
+          "name": "contentsPermission",
+          "writable": true
+        },
+        {
+          "name": "poolPermission",
+          "writable": true
+        },
+        {
+          "name": "ephemeralVault",
+          "writable": true,
+          "address": "MagicVau1t999999999999999999999999999999999"
+        },
+        {
+          "name": "permissionProgram",
+          "address": "ACLseoPoyC3cBqoUtkbjZ4aDrkurZW86v19pXz2XQnp1"
+        },
+        {
+          "name": "magicProgram",
+          "address": "Magic11111111111111111111111111111111111111"
+        },
+        {
+          "name": "magicContext",
+          "writable": true,
+          "address": "MagicContext1111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "commitClosedRound",
+      "docs": [
+        "Commit in a separate transaction from the state writes in close_round.",
+        "The TEE rejected a MagicIntent CPI when those writes shared its transaction."
+      ],
+      "discriminator": [
+        104,
+        63,
+        16,
+        42,
+        31,
+        214,
+        12,
+        242
       ],
       "accounts": [
         {
@@ -1707,10 +2087,6 @@ export type BlindVault = {
           "name": "contents"
         },
         {
-          "name": "poolLedger",
-          "writable": true
-        },
-        {
           "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
@@ -1751,6 +2127,83 @@ export type BlindVault = {
         {
           "name": "vault",
           "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "forceAbandonStale",
+      "docs": [
+        "House escape hatch after deadline + grace when private bids block `end_auction`.",
+        "Marks the lot abandoned and treats bids/peeks as closed so settlement can finish",
+        "and a new Open lot can start (Devnet faucet SCRIP — not real funds)."
+      ],
+      "discriminator": [
+        200,
+        176,
+        99,
+        152,
+        233,
+        165,
+        239,
+        154
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "house"
+        },
+        {
+          "name": "vault",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "forceClearActive",
+      "docs": [
+        "Clear `house.active_vault` so a new lot can open when the prior round is stuck",
+        "mid-settlement on TEE (Devnet/demo escape hatch)."
+      ],
+      "discriminator": [
+        46,
+        16,
+        138,
+        34,
+        169,
+        42,
+        36,
+        204
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "house",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  117,
+                  115,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault"
         }
       ],
       "args": []
@@ -1820,6 +2273,54 @@ export type BlindVault = {
         {
           "name": "permissionProgram",
           "address": "ACLseoPoyC3cBqoUtkbjZ4aDrkurZW86v19pXz2XQnp1"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initContentsPermission",
+      "docs": [
+        "Create contents permission only (isolates pool ghost failures)."
+      ],
+      "discriminator": [
+        173,
+        33,
+        68,
+        164,
+        11,
+        75,
+        120,
+        253
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "contents",
+          "writable": true
+        },
+        {
+          "name": "contentsPermission",
+          "writable": true
+        },
+        {
+          "name": "ephemeralVault",
+          "writable": true,
+          "address": "MagicVau1t999999999999999999999999999999999"
+        },
+        {
+          "name": "magicProgram",
+          "address": "Magic11111111111111111111111111111111111111"
+        },
+        {
+          "name": "permissionProgram",
+          "address": "ACLseoPoyC3cBqoUtkbjZ4aDrkurZW86v19pXz2XQnp1"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
         }
       ],
       "args": []
@@ -2101,7 +2602,10 @@ export type BlindVault = {
                   112,
                   111,
                   111,
-                  108
+                  108,
+                  95,
+                  118,
+                  57
                 ]
               },
               {
@@ -2110,6 +2614,55 @@ export type BlindVault = {
               }
             ]
           }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initPoolPermission",
+      "docs": [
+        "Create pool permission with the house PDA as standing member so later",
+        "rounds can Update without the previous vault still being on the TEE."
+      ],
+      "discriminator": [
+        110,
+        253,
+        10,
+        13,
+        34,
+        190,
+        42,
+        184
+      ],
+      "accounts": [
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "poolLedger",
+          "writable": true
+        },
+        {
+          "name": "poolPermission",
+          "writable": true
+        },
+        {
+          "name": "ephemeralVault",
+          "writable": true,
+          "address": "MagicVau1t999999999999999999999999999999999"
+        },
+        {
+          "name": "magicProgram",
+          "address": "Magic11111111111111111111111111111111111111"
+        },
+        {
+          "name": "permissionProgram",
+          "address": "ACLseoPoyC3cBqoUtkbjZ4aDrkurZW86v19pXz2XQnp1"
         },
         {
           "name": "systemProgram",
@@ -2224,6 +2777,100 @@ export type BlindVault = {
       ]
     },
     {
+      "name": "payWinningBid",
+      "docs": [
+        "Winner pays on base Solana after reveal. The TEE cannot write the",
+        "house treasury ATA, so its settle instruction verifies this receipt."
+      ],
+      "discriminator": [
+        88,
+        225,
+        40,
+        60,
+        238,
+        33,
+        44,
+        114
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "house",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  117,
+                  115,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault"
+        },
+        {
+          "name": "paymentReceipt",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  121,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "vault"
+              },
+              {
+                "kind": "account",
+                "path": "payer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payerScrip",
+          "writable": true
+        },
+        {
+          "name": "treasury",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "placeBid",
       "discriminator": [
         238,
@@ -2241,7 +2888,10 @@ export type BlindVault = {
           "signer": true
         },
         {
-          "name": "vault",
+          "name": "lot",
+          "docs": [
+            "Auction vault PDA (must NOT be named `vault` — macro reserves that for Magic rent vault)"
+          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -2257,12 +2907,12 @@ export type BlindVault = {
               },
               {
                 "kind": "account",
-                "path": "vault.house",
+                "path": "lot.house",
                 "account": "vault"
               },
               {
                 "kind": "account",
-                "path": "vault.id",
+                "path": "lot.id",
                 "account": "vault"
               }
             ]
@@ -2283,7 +2933,7 @@ export type BlindVault = {
               },
               {
                 "kind": "account",
-                "path": "vault"
+                "path": "lot"
               },
               {
                 "kind": "account",
@@ -2294,14 +2944,23 @@ export type BlindVault = {
         },
         {
           "name": "bidderScrip",
+          "docs": [
+            "Bidder SCRIP ATA (canonical ATA on TEE after delegateSpl). Funds locked via approve."
+          ],
           "writable": true
         },
         {
-          "name": "escrow",
-          "writable": true
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
         {
-          "name": "tokenProgram"
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "address": "MagicVau1t999999999999999999999999999999999"
         },
         {
           "name": "magicProgram",
@@ -2469,10 +3128,14 @@ export type BlindVault = {
       ],
       "accounts": [
         {
-          "name": "bidder"
+          "name": "bidder",
+          "docs": [
+            "Bidder signs CloseEphemeralPermission (ACL member)."
+          ],
+          "signer": true
         },
         {
-          "name": "vault",
+          "name": "lot",
           "writable": true,
           "pda": {
             "seeds": [
@@ -2488,12 +3151,12 @@ export type BlindVault = {
               },
               {
                 "kind": "account",
-                "path": "vault.house",
+                "path": "lot.house",
                 "account": "vault"
               },
               {
                 "kind": "account",
-                "path": "vault.id",
+                "path": "lot.id",
                 "account": "vault"
               }
             ]
@@ -2514,7 +3177,7 @@ export type BlindVault = {
               },
               {
                 "kind": "account",
-                "path": "vault"
+                "path": "lot"
               },
               {
                 "kind": "account",
@@ -2529,30 +3192,109 @@ export type BlindVault = {
         },
         {
           "name": "escrow",
+          "docs": [
+            "Vault escrow ATA"
+          ],
           "writable": true
         },
         {
           "name": "bidderScrip",
+          "docs": [
+            "Bidder SCRIP ATA"
+          ],
           "writable": true
-        },
-        {
-          "name": "ephemeralVault",
-          "writable": true,
-          "address": "MagicVau1t999999999999999999999999999999999"
-        },
-        {
-          "name": "magicProgram",
-          "address": "Magic11111111111111111111111111111111111111"
         },
         {
           "name": "permissionProgram",
           "address": "ACLseoPoyC3cBqoUtkbjZ4aDrkurZW86v19pXz2XQnp1"
         },
         {
-          "name": "tokenProgram"
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "address": "MagicVau1t999999999999999999999999999999999"
+        },
+        {
+          "name": "magicProgram",
+          "address": "Magic11111111111111111111111111111111111111"
         }
       ],
       "args": []
+    },
+    {
+      "name": "releasePoolItems",
+      "docs": [
+        "TEE-only: mark pool items sold / clear reserved after a round already closed",
+        "without pool bit updates (pool stays delegated — MB-015 lifecycle)."
+      ],
+      "discriminator": [
+        161,
+        191,
+        99,
+        148,
+        108,
+        117,
+        150,
+        23
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "house",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  117,
+                  115,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "poolLedger",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  118,
+                  57
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "house"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "indices",
+          "type": {
+            "vec": "u16"
+          }
+        }
+      ]
     },
     {
       "name": "revealContents",
@@ -2613,7 +3355,14 @@ export type BlindVault = {
       ],
       "accounts": [
         {
-          "name": "vault",
+          "name": "closer",
+          "docs": [
+            "Winner signs CloseEphemeralPermission (bid ACL member per MB-016)."
+          ],
+          "signer": true
+        },
+        {
+          "name": "lot",
           "writable": true,
           "pda": {
             "seeds": [
@@ -2629,12 +3378,12 @@ export type BlindVault = {
               },
               {
                 "kind": "account",
-                "path": "vault.house",
+                "path": "lot.house",
                 "account": "vault"
               },
               {
                 "kind": "account",
-                "path": "vault.id",
+                "path": "lot.id",
                 "account": "vault"
               }
             ]
@@ -2655,11 +3404,11 @@ export type BlindVault = {
               },
               {
                 "kind": "account",
-                "path": "vault"
+                "path": "lot"
               },
               {
                 "kind": "account",
-                "path": "vault.winner",
+                "path": "lot.winner",
                 "account": "vault"
               }
             ]
@@ -2670,31 +3419,151 @@ export type BlindVault = {
           "writable": true
         },
         {
+          "name": "paymentReceipt",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  121,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lot"
+              },
+              {
+                "kind": "account",
+                "path": "lot.winner",
+                "account": "vault"
+              }
+            ]
+          }
+        },
+        {
           "name": "escrow",
+          "docs": [
+            "Winner SCRIP ATA (bid.escrow) — vault is SPL delegate from place_bid"
+          ],
           "writable": true
         },
         {
-          "name": "treasury",
-          "writable": true
-        },
-        {
-          "name": "ephemeralVault",
-          "writable": true,
-          "address": "MagicVau1t999999999999999999999999999999999"
-        },
-        {
-          "name": "magicProgram",
-          "address": "Magic11111111111111111111111111111111111111"
+          "name": "treasury"
         },
         {
           "name": "permissionProgram",
           "address": "ACLseoPoyC3cBqoUtkbjZ4aDrkurZW86v19pXz2XQnp1"
         },
         {
-          "name": "tokenProgram"
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "address": "MagicVau1t999999999999999999999999999999999"
+        },
+        {
+          "name": "magicProgram",
+          "address": "Magic11111111111111111111111111111111111111"
         }
       ],
       "args": []
+    },
+    {
+      "name": "touchAccount",
+      "docs": [
+        "No-op that forces the TEE to clone a delegated account (e.g. pool after re-delegate)."
+      ],
+      "discriminator": [
+        60,
+        30,
+        223,
+        215,
+        15,
+        51,
+        227,
+        197
+      ],
+      "accounts": [
+        {
+          "name": "account",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "updateHouseTiming",
+      "discriminator": [
+        0,
+        93,
+        9,
+        145,
+        138,
+        193,
+        167,
+        53
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "house",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  111,
+                  117,
+                  115,
+                  101
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "peekFee",
+          "type": {
+            "array": [
+              "u64",
+              3
+            ]
+          }
+        },
+        {
+          "name": "minBid",
+          "type": {
+            "array": [
+              "u64",
+              3
+            ]
+          }
+        },
+        {
+          "name": "durationSecs",
+          "type": {
+            "array": [
+              "i64",
+              3
+            ]
+          }
+        }
+      ]
     }
   ],
   "accounts": [
@@ -2735,6 +3604,19 @@ export type BlindVault = {
         254,
         86,
         216
+      ]
+    },
+    {
+      "name": "paymentReceipt",
+      "discriminator": [
+        168,
+        198,
+        209,
+        4,
+        60,
+        235,
+        126,
+        109
       ]
     },
     {
@@ -2938,36 +3820,41 @@ export type BlindVault = {
     },
     {
       "code": 6029,
+      "name": "unclosedPermission",
+      "msg": "Ephemeral permissions must close before commit"
+    },
+    {
+      "code": 6030,
       "name": "notUndelegated",
       "msg": "Vault not undelegated yet"
     },
     {
-      "code": 6030,
+      "code": 6031,
       "name": "itemMismatch",
       "msg": "Item mismatch on finalize"
     },
     {
-      "code": 6031,
+      "code": 6032,
       "name": "faucetCooldown",
       "msg": "Faucet cooldown active"
     },
     {
-      "code": 6032,
+      "code": 6033,
       "name": "mathOverflow",
       "msg": "Math overflow"
     },
     {
-      "code": 6033,
+      "code": 6034,
       "name": "invalidAmount",
       "msg": "Invalid amount"
     },
     {
-      "code": 6034,
+      "code": 6035,
       "name": "mintMismatch",
       "msg": "Mint mismatch"
     },
     {
-      "code": 6035,
+      "code": 6036,
       "name": "invalidTokenOwner",
       "msg": "Invalid token owner"
     }
@@ -3133,6 +4020,33 @@ export type BlindVault = {
           {
             "name": "owner",
             "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "paymentReceipt",
+      "docs": [
+        "Base Solana proof that the winner paid SCRIP into the house treasury."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "payer",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
           },
           {
             "name": "bump",

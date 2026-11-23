@@ -4,13 +4,15 @@ pub const HOUSE_SEED: &[u8] = b"house";
 pub const ITEM_SEED: &[u8] = b"item";
 /// Bumped when prior pool PDAs left TEE-private ghosts / stale vault-only members
 /// after round close (next vault could not UpdateEphemeralPermission).
-pub const POOL_SEED: &[u8] = b"pool_v4";
+/// Bumped when TEE lost the delegated pool clone (touch could not rehydrate).
+pub const POOL_SEED: &[u8] = b"pool_v9";
 pub const VAULT_SEED: &[u8] = b"vault";
 pub const HINTS_SEED: &[u8] = b"hints";
 pub const CONTENTS_SEED: &[u8] = b"contents";
 pub const BID_SEED: &[u8] = b"bid";
 pub const PEEK_SEED: &[u8] = b"peek";
 pub const FAUCET_SEED: &[u8] = b"faucet";
+pub const PAYMENT_SEED: &[u8] = b"payment";
 
 pub const MAX_ITEMS_POOL: usize = 64;
 pub const MAX_ITEMS_VAULT: usize = 8;

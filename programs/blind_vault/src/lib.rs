@@ -2,9 +2,9 @@
 //! Devnet / TEE only. Contents + bids stay private until reveal.
 use anchor_lang::prelude::*;
 use anchor_lang::system_program::{transfer as transfer_lamports, Transfer as LamportsTransfer};
-use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::associated_token::{get_associated_token_address, AssociatedToken};
 use anchor_spl::token::{
-    self, Approve, Mint, MintTo, SetAuthority, Token, TokenAccount, Transfer as SplTransfer,
+    self, Approve, Mint, MintTo, Revoke, SetAuthority, Token, TokenAccount, Transfer as SplTransfer,
 };
 use ephemeral_rollups_sdk::access_control::{
     instructions::{
@@ -15,6 +15,7 @@ use ephemeral_rollups_sdk::access_control::{
 use ephemeral_rollups_sdk::anchor::{commit, delegate, ephemeral, ephemeral_accounts};
 use ephemeral_rollups_sdk::consts::{EPHEMERAL_VAULT_ID, MAGIC_PROGRAM_ID, PERMISSION_PROGRAM_ID};
 use ephemeral_rollups_sdk::cpi::DelegateConfig;
+use ephemeral_rollups_sdk::ephem::MagicIntentBundleBuilder;
 
 mod constants;
 mod error;
@@ -29,6 +30,7 @@ use util::ephemeral::{
     delegate_ephemeral_ata, eata_buffer_address, ephemeral_ata_pda, init_ephemeral_ata,
     metadata_pda, permission_member, record_pda,
 };
+use util::fill::weighted_pick;
 use util::hash::hashv;
 use util::hints::release_hint;
 
@@ -81,6 +83,30 @@ pub mod blind_vault {
         house.peek_fee = peek_fee;
         house.min_bid = min_bid;
         house.duration_secs = duration_secs;
+        Ok(())
+    }
+
+    /// Winner pays on base Solana after reveal. The TEE cannot write the
+    /// house treasury ATA, so its settle instruction verifies this receipt.
+    pub fn pay_winning_bid(ctx: Context<PayWinningBid>, amount: u64) -> Result<()> {
+        require!(amount > 0, ErrorCode::InvalidAmount);
+        require_keys_neq!(ctx.accounts.vault.key(), Pubkey::default(), ErrorCode::BadStatus);
+        token::transfer(
+            CpiContext::new(
+                ctx.accounts.token_program.key(),
+                SplTransfer {
+                    from: ctx.accounts.payer_scrip.to_account_info(),
+                    to: ctx.accounts.treasury.to_account_info(),
+                    authority: ctx.accounts.payer.to_account_info(),
+                },
+            ),
+            amount,
+        )?;
+        let receipt = &mut ctx.accounts.payment_receipt;
+        receipt.vault = ctx.accounts.vault.key();
+        receipt.payer = ctx.accounts.payer.key();
+        receipt.amount = amount;
+        receipt.bump = ctx.bumps.payment_receipt;
         Ok(())
     }
 
@@ -660,13 +686,14 @@ pub mod blind_vault {
         let n = ctx.accounts.vault.item_count as usize;
         require!(free.len() >= n, ErrorCode::NotEnoughItems);
 
+        // Rarity-weighted draw (Gold+Legendary ~4%/slot). Still TEE-entropy random —
+        // not house-picked. Uniform shuffle made hot cards too common vs catalog mix.
+        let picked = weighted_pick(&mut free, &pool.rarities, n, &entropy)
+            .ok_or(ErrorCode::NotEnoughItems)?;
+
         let mut total = 0u32;
         let contents = &mut ctx.accounts.contents;
-        for k in 0..n {
-            let r = u64::from_le_bytes(hashv(&[&entropy, &[k as u8]])[..8].try_into().unwrap());
-            let j = k + (r % (free.len() - k) as u64) as usize;
-            free.swap(k, j);
-            let idx = free[k];
+        for (k, idx) in picked.into_iter().enumerate() {
             contents.items[k] = idx;
             set_bit(&mut pool.reserved, idx);
             total = total
@@ -1076,22 +1103,19 @@ pub mod blind_vault {
         let amount = bid.amount;
         let vault_seeds: &[&[u8]] = &[VAULT_SEED, house.as_ref(), &id_bytes, &[bump]];
 
-        // Vault is the SPL delegate from place_bid. Pull winner → treasury only when
-        // treasury looks like a real Token account on TEE (Magic ATA sinks often fail).
-        if ctx.accounts.treasury.data_len() >= 165 {
-            token::transfer(
-                CpiContext::new_with_signer(
-                    ctx.accounts.token_program.key(),
-                    SplTransfer {
-                        from: ctx.accounts.escrow.to_account_info(),
-                        to: ctx.accounts.treasury.to_account_info(),
-                        authority: ctx.accounts.lot.to_account_info(),
-                    },
-                    &[vault_seeds],
-                ),
-                amount,
-            )?;
-        }
+        // Base Solana treasury is not writable on TEE. Require a canonical
+        // receipt for the exact winning amount before releasing the bid.
+        require_keys_eq!(ctx.accounts.treasury.key(), get_associated_token_address(&ctx.accounts.lot.house, &ctx.accounts.escrow.mint), ErrorCode::InvalidBidEscrow);
+        require_keys_eq!(ctx.accounts.payment_receipt.vault, ctx.accounts.lot.key(), ErrorCode::InvalidBid);
+        require_keys_eq!(ctx.accounts.payment_receipt.payer, bid.bidder, ErrorCode::InvalidBid);
+        require!(ctx.accounts.payment_receipt.amount == amount, ErrorCode::InvalidAmount);
+        token::revoke(CpiContext::new(
+            ctx.accounts.token_program.key(),
+            Revoke {
+                source: ctx.accounts.escrow.to_account_info(),
+                authority: ctx.accounts.closer.to_account_info(),
+            },
+        ))?;
 
         // `vault` = Magic rent vault injected by #[ephemeral_accounts]
         // Close ACL (SDK 0.16.2): payer always signs; when authority_is_signer,
@@ -1304,13 +1328,9 @@ pub mod blind_vault {
         };
         let vault_seeds: &[&[u8]] = &[VAULT_SEED, house.as_ref(), &id_bytes, &[bump]];
 
-        // MagicIntent commit/undelegate + CloseEphemeralPermission fail on
-        // `devnet-tee` after public reveal with ExternalAccountDataModified /
-        // custom 0xa0000000 — for BOTH abandoned and winning rounds. Status is
-        // already Closed above; pool sold/reserved bits are already written for
-        // wins. Skip the CPI so the ix commits; house `force_clear_active`
-        // unblocks the next Open. Orphaned TEE accounts are acceptable on
-        // Devnet/demo (no real funds). Keep pool delegated across rounds.
+        // State writes complete here. The keeper closes the contents permission
+        // and invokes commit_closed_round in separate TEE transactions, then
+        // waits for undelegation and finalizes ownership on base Solana.
         let _ = (vault_seeds, abandoned);
         let _ = (
             &ctx.accounts.contents_permission,
@@ -1325,6 +1345,87 @@ pub mod blind_vault {
         Ok(())
     }
 
+    /// Commit in a separate transaction from the state writes in close_round.
+    /// The TEE rejected a MagicIntent CPI when those writes shared its transaction.
+    pub fn commit_closed_round(ctx: Context<CloseRound>) -> Result<()> {
+        let data = ctx.accounts.vault.try_borrow_data()?;
+        let vault = Vault::try_deserialize(&mut &data[..])?;
+        require!(vault.status == VaultStatus::Closed, ErrorCode::BadStatus);
+        require!(vault.closed_bid_count == vault.bid_count, ErrorCode::UnclosedBids);
+        require!(vault.closed_peek_count == vault.peeks_sold, ErrorCode::UnclosedPeeks);
+        require!(ctx.accounts.contents_permission.lamports() == 0, ErrorCode::UnclosedPermission);
+        require!(ctx.accounts.pool_permission.lamports() == 0, ErrorCode::UnclosedPermission);
+        require_keys_eq!(vault.house, Pubkey::find_program_address(&[HOUSE_SEED], &crate::ID).0, ErrorCode::Unauthorized);
+        require_keys_eq!(ctx.accounts.vault.key(), Pubkey::find_program_address(&[VAULT_SEED, vault.house.as_ref(), &vault.id.to_le_bytes()], &crate::ID).0, ErrorCode::ItemMismatch);
+        require_keys_eq!(ctx.accounts.hints.key(), Pubkey::find_program_address(&[HINTS_SEED, ctx.accounts.vault.key().as_ref()], &crate::ID).0, ErrorCode::ItemMismatch);
+        require_keys_eq!(ctx.accounts.contents.key(), Pubkey::find_program_address(&[CONTENTS_SEED, ctx.accounts.vault.key().as_ref()], &crate::ID).0, ErrorCode::ItemMismatch);
+        require_keys_eq!(ctx.accounts.pool_ledger.key(), Pubkey::find_program_address(&[POOL_SEED, vault.house.as_ref()], &crate::ID).0, ErrorCode::ItemMismatch);
+        drop(data);
+
+        MagicIntentBundleBuilder::new(
+            ctx.accounts.payer.to_account_info(),
+            ctx.accounts.magic_context.to_account_info(),
+            ctx.accounts.magic_program.to_account_info(),
+        )
+        .commit_and_undelegate(&[
+            ctx.accounts.pool_ledger.to_account_info(),
+            ctx.accounts.vault.to_account_info(),
+            ctx.accounts.hints.to_account_info(),
+            ctx.accounts.contents.to_account_info(),
+        ])
+        .build_and_invoke()?;
+        Ok(())
+    }
+
+    /// Remove the now-public contents ACL in its own transaction before undelegation.
+    pub fn close_contents_permission(ctx: Context<CloseRound>) -> Result<()> {
+        let data = ctx.accounts.vault.try_borrow_data()?;
+        let vault = Vault::try_deserialize(&mut &data[..])?;
+        require!(vault.status == VaultStatus::Closed, ErrorCode::BadStatus);
+        let vault_key = ctx.accounts.vault.key();
+        require_keys_eq!(vault_key, Pubkey::find_program_address(&[VAULT_SEED, vault.house.as_ref(), &vault.id.to_le_bytes()], &crate::ID).0, ErrorCode::ItemMismatch);
+        require_keys_eq!(ctx.accounts.contents.key(), Pubkey::find_program_address(&[CONTENTS_SEED, vault_key.as_ref()], &crate::ID).0, ErrorCode::ItemMismatch);
+        let id_bytes = vault.id.to_le_bytes();
+        let seeds: &[&[u8]] = &[VAULT_SEED, vault.house.as_ref(), &id_bytes, &[vault.bump]];
+        if ctx.accounts.contents_permission.lamports() > 0 {
+            CloseEphemeralPermissionCpi {
+                payer: ctx.accounts.vault.to_account_info(),
+                authority: ctx.accounts.vault.to_account_info(),
+                permissioned_account: ctx.accounts.contents.to_account_info(),
+                permission: ctx.accounts.contents_permission.to_account_info(),
+                vault: ctx.accounts.ephemeral_vault.to_account_info(),
+                magic_program: ctx.accounts.magic_program.to_account_info(),
+                permission_program: ctx.accounts.permission_program.to_account_info(),
+                authority_is_signer: true,
+            }.invoke_signed(&[seeds])?;
+        }
+        Ok(())
+    }
+
+    /// The pool must return to base Solana with the vault so the next round
+    /// can delegate a fresh TEE clone instead of reusing an orphaned one.
+    pub fn close_pool_permission(ctx: Context<CloseRound>) -> Result<()> {
+        let data = ctx.accounts.vault.try_borrow_data()?;
+        let vault = Vault::try_deserialize(&mut &data[..])?;
+        require!(vault.status == VaultStatus::Closed, ErrorCode::BadStatus);
+        require_keys_eq!(ctx.accounts.pool_ledger.key(), Pubkey::find_program_address(&[POOL_SEED, vault.house.as_ref()], &crate::ID).0, ErrorCode::ItemMismatch);
+        let id_bytes = vault.id.to_le_bytes();
+        let seeds: &[&[u8]] = &[VAULT_SEED, vault.house.as_ref(), &id_bytes, &[vault.bump]];
+        if ctx.accounts.pool_permission.lamports() > 0 {
+            CloseEphemeralPermissionCpi {
+                payer: ctx.accounts.vault.to_account_info(),
+                authority: ctx.accounts.vault.to_account_info(),
+                permissioned_account: ctx.accounts.pool_ledger.to_account_info(),
+                permission: ctx.accounts.pool_permission.to_account_info(),
+                vault: ctx.accounts.ephemeral_vault.to_account_info(),
+                magic_program: ctx.accounts.magic_program.to_account_info(),
+                permission_program: ctx.accounts.permission_program.to_account_info(),
+                authority_is_signer: true,
+            }.invoke_signed(&[seeds])?;
+        }
+        Ok(())
+    }
+
     /// TEE-only: mark pool items sold / clear reserved after a round already closed
     /// without pool bit updates (pool stays delegated — MB-015 lifecycle).
     pub fn release_pool_items(ctx: Context<ReleasePoolItems>, indices: Vec<u16>) -> Result<()> {
@@ -1336,6 +1437,16 @@ pub mod blind_vault {
         require!(indices.len() <= MAX_ITEMS_VAULT, ErrorCode::ItemMismatch);
         for item_idx in indices {
             set_bit(&mut ctx.accounts.pool_ledger.sold, item_idx);
+            clear_bit(&mut ctx.accounts.pool_ledger.reserved, item_idx);
+        }
+        Ok(())
+    }
+
+    /// Recover inventory from an abandoned Devnet round without marking it sold.
+    pub fn clear_reserved_items(ctx: Context<ReleasePoolItems>, indices: Vec<u16>) -> Result<()> {
+        require_keys_eq!(ctx.accounts.house.authority, ctx.accounts.authority.key(), ErrorCode::Unauthorized);
+        require!(indices.len() <= MAX_ITEMS_VAULT, ErrorCode::ItemMismatch);
+        for item_idx in indices {
             clear_bit(&mut ctx.accounts.pool_ledger.reserved, item_idx);
         }
         Ok(())
@@ -1482,6 +1593,31 @@ pub struct UpdateHouseTiming<'info> {
     pub authority: Signer<'info>,
     #[account(mut, seeds = [HOUSE_SEED], bump = house.bump)]
     pub house: Account<'info, House>,
+}
+
+#[derive(Accounts)]
+pub struct PayWinningBid<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(seeds = [HOUSE_SEED], bump = house.bump)]
+    pub house: Account<'info, House>,
+    /// CHECK: active vault may still be delegated to TEE; its key is checked.
+    #[account(address = house.active_vault)]
+    pub vault: UncheckedAccount<'info>,
+    #[account(
+        init,
+        payer = payer,
+        space = 8 + PaymentReceipt::LEN,
+        seeds = [PAYMENT_SEED, vault.key().as_ref(), payer.key().as_ref()],
+        bump
+    )]
+    pub payment_receipt: Account<'info, PaymentReceipt>,
+    #[account(mut, constraint = payer_scrip.owner == payer.key(), constraint = payer_scrip.mint == house.scrip_mint)]
+    pub payer_scrip: Account<'info, TokenAccount>,
+    #[account(mut, address = house.treasury)]
+    pub treasury: Account<'info, TokenAccount>,
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -1951,11 +2087,15 @@ pub struct SettleWinningBid<'info> {
     /// CHECK: permission
     #[account(mut)]
     pub bid_permission: UncheckedAccount<'info>,
+    #[account(
+        seeds = [PAYMENT_SEED, lot.key().as_ref(), lot.winner.as_ref()],
+        bump = payment_receipt.bump
+    )]
+    pub payment_receipt: Account<'info, PaymentReceipt>,
     /// Winner SCRIP ATA (bid.escrow) — vault is SPL delegate from place_bid
     #[account(mut)]
     pub escrow: Account<'info, TokenAccount>,
-    /// CHECK: settlement destination (Magic ATA ok — not Anchor-deserialized)
-    #[account(mut)]
+    /// CHECK: canonical house treasury address; base account remains read-only on TEE.
     pub treasury: UncheckedAccount<'info>,
     /// CHECK: permission program
     #[account(address = PERMISSION_PROGRAM_ID)]

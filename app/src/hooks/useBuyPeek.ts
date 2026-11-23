@@ -197,7 +197,7 @@ export function useBuyPeek(vault: DecodedVault | null | undefined) {
       await qc.invalidateQueries({ queryKey: ["vault"] });
       return { ...result, feeSig: fee.sig };
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(friendlyPeekError(e));
       return null;
     } finally {
       setBusy(false);
@@ -205,4 +205,30 @@ export function useBuyPeek(vault: DecodedVault | null | undefined) {
   }, [vault, connected, publicKey, signTransaction, ensureToken, qc]);
 
   return { buyPeek, busy, error, lastSig, feeSig };
+}
+
+function friendlyPeekError(e: unknown): string {
+  const msg = e instanceof Error ? e.message : String(e);
+  const lower = msg.toLowerCase();
+  if (lower.includes("user rejected") || lower.includes("rejected")) {
+    return "You cancelled the wallet popup — try Buy peek again.";
+  }
+  if (
+    lower.includes("insufficient") ||
+    lower.includes("need") ||
+    lower.includes("balance")
+  ) {
+    return "Not enough SCRIP for a peek — claim free play money on Paddle.";
+  }
+  if (
+    lower.includes("invalid account data") ||
+    lower.includes("simulation failed") ||
+    lower.includes("custom program error")
+  ) {
+    return "Peek couldn’t complete (lot may have closed, or you already peeked). Refresh and try again while the lot is Open.";
+  }
+  if (lower.includes("not open") || lower.includes("status")) {
+    return "Peeks only work while the lot is Open and the clock still has time.";
+  }
+  return msg.length > 140 ? `${msg.slice(0, 140)}…` : msg;
 }

@@ -87,7 +87,11 @@ export async function loadVaultHistory(opts?: {
 
   const lots: HistoryLot[] = [];
   for (let i = 0; i < ids.length; i++) {
-    const raw = teeRows[i] ?? baseRows[i];
+    // A TEE clone may remain at Closed after Solana has finalized ownership.
+    // Prefer the durable base record only once it is actually Settled.
+    const base = baseRows[i];
+    const baseStatus = base ? vaultStatusName(base.status as Record<string, unknown>) : null;
+    const raw = baseStatus === "Settled" ? base : teeRows[i] ?? base;
     if (!raw) continue;
 
     const status = vaultStatusName(
