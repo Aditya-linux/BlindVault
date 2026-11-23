@@ -8,6 +8,8 @@ The unattended runner now retries a failed open or stuck keeper step without for
 
 **Rollover gate pending winner settlement:** lot 65 reached its deadline with one real bid. The bidder ended the lot through the app; it is Revealed with winner `3i1YQqPua8Nuzjpm3aQ5Aa34yfooDuXni3Y4Mm5rFn74`. The watchdog is alive and reports `settle wait — winner must sign closer`; it has not force-cleared the bid. The winning wallet has 9.95595584 Devnet SOL and 349 SCRIP on base, so the Claim flow has enough public balance. Payment and TEE settlement still require that wallet's signature. The deployed app bundle contains `payWinningBid`. This run has not yet proved an unattended transition to lot 66.
 
+**Follow-up FAIL / still pending:** after the winner reported claiming lot 65, the public app API still returned `Revealed` and the watchdog still reported `closedBids=0/1`. Read-only base RPC showed payment receipt `FhqPZUX3YyuJTf8nE771i6PmLVkbSMQmb2QTU7bEMmyq` does not exist. No lot 66 was opened because the winning bid must not be discarded. The exact app/wallet result is being requested from the winner.
+
 ## Canonical Devnet settlement gate — 2026-11-23
 
 **PASS: two consecutive winning rounds on `pool_v9`.** Vaults 63 and 64 both completed the full bidder privacy → winner → base SCRIP payment → TEE settlement → reveal → permission closure → commit and undelegate → Solana finalize → SPL ownership path. The production claim supported by this gate is that a winning bidder receives real Devnet SPL cards after finalization. This is Devnet/TEE evidence; it is not mainnet readiness or ER VRF proof. Fill still uses TEE-local entropy.
