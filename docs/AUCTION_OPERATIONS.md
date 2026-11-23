@@ -44,6 +44,18 @@ taskkill /PID $watchPid /T /F
 
 ## What automation can finish
 
+If `peeksSold` exceeds `closedPeekCount`, the peek buyer can use **Release my peek** in the app. When that buyer has confirmed their public address, the operator can close their peek with the keeper's designated instruction:
+
+```powershell
+$env:PEEK_BUYER = '<confirmed peek buyer public address>'
+npx tsx scripts/keeper.ts --once
+Remove-Item Env:PEEK_BUYER
+```
+
+The keeper cannot sign the buyer's Claim or pay their winning SCRIP. If it prints `settle wait`, the winning wallet must finish Claim before the next lot opens.
+
+The deployed app's Solana browser calls use `/api/solana-rpc`. Set `SOLANA_RPC` in Vercel Production to a sensitive, server-only HTTPS Devnet RPC URL; keep its API credential out of `NEXT_PUBLIC_*` variables and the repository. If Claim reports a rate limit, wait briefly and retry. Claim reads the payment receipt before asking Phantom to pay again.
+
 Empty lots can end, reveal, close, commit, finalize, and roll forward without a bidder. A winning human bid needs the winner's wallet to sign the base SCRIP payment and TEE settlement. The operator watchdog cannot sign for a bidder or silently discard a bid. The winner should use the app's Claim flow after the deadline; the watchdog then completes the remaining stages and opens the next lot. The keeper may also need the bidder public keys (`BIDDERS`) to choose a winner if the bidders do not initiate End lot themselves.
 
 After a confirmed bid, the live lot should show a dim, disabled **Bid placed** button. If the wallet is slow to read its private bid, the same device's saved bid keeps that button disabled. Do not try to place the same wallet's bid again. After the deadline, return to the lot page and use **Claim my pack** when the winner is selected; each required Phantom prompt is part of settlement.

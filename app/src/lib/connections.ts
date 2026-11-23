@@ -7,10 +7,12 @@ function env(name: string, fallback: string): string {
   return raw.replace(/^["']|["']$/g, "").replace(/\\r\\n$/g, "").trim();
 }
 
-export const SOLANA_RPC = env(
-  "NEXT_PUBLIC_SOLANA_RPC",
-  "https://api.devnet.solana.com",
-);
+// Browser traffic uses our same-origin Devnet proxy; the provider credential
+// stays on the server. SSR never opens this connection during page rendering.
+export const SOLANA_RPC =
+  typeof window === "undefined"
+    ? "https://api.devnet.solana.com"
+    : `${window.location.origin}/api/solana-rpc`;
 export const TEE_RPC = env(
   "NEXT_PUBLIC_TEE_RPC",
   "https://devnet-tee.magicblock.app",

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { AnchorProvider, Idl, Program } from "@coral-xyz/anchor";
 import idl from "@/idl/blind_vault.json";
-import { SOLANA_RPC } from "@/lib/connections";
+import { serverSolanaRpc } from "@/lib/serverSolanaRpc";
 import { housePda, itemPda } from "@/lib/pdas";
 
 export const runtime = "nodejs";
@@ -32,7 +32,7 @@ async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
 
 export async function GET() {
   try {
-    const connection = new Connection(SOLANA_RPC, {
+    const connection = new Connection(serverSolanaRpc(), {
       commitment: "confirmed",
       disableRetryOnRateLimit: false,
     });

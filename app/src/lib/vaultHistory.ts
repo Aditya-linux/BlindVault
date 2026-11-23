@@ -1,7 +1,8 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { AnchorProvider, Idl, Program } from "@coral-xyz/anchor";
 import idl from "@/idl/blind_vault.json";
-import { SOLANA_RPC, TEE_RPC } from "@/lib/connections";
+import { TEE_RPC } from "@/lib/connections";
+import { serverSolanaRpc } from "@/lib/serverSolanaRpc";
 import { housePda, vaultPda } from "@/lib/pdas";
 import {
   revealedItemsVisible,
@@ -41,7 +42,7 @@ export async function loadVaultHistory(opts?: {
 }> {
   const limit = opts?.limit ?? 40;
   const house = housePda();
-  const solana = new Connection(SOLANA_RPC, "confirmed");
+  const solana = new Connection(serverSolanaRpc(), "confirmed");
   const tee = new Connection(TEE_RPC, "confirmed");
   const baseProgram = readonlyProgram(solana);
 

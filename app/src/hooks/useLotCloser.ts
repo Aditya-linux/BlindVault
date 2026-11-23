@@ -285,7 +285,12 @@ export function useLotCloser(vault: DecodedVault | null | undefined) {
       setPhase("Pack ready");
       setCompletedVaultId(vault.id);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      const message = e instanceof Error ? e.message : String(e);
+      setError(
+        /\b429\b|rate limits exceeded|too many requests/i.test(message)
+          ? "Devnet RPC is busy. Tap Claim again shortly. The app checks your payment receipt before asking Phantom to pay again."
+          : message,
+      );
       setPhase(null);
     } finally {
       setBusy(false);

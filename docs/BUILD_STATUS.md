@@ -1,5 +1,13 @@
 # Build Status
 
+## Lot 67 claim RPC gate — 2026-11-23
+
+**FAIL / repair in progress:** the winner's Claim screen failed while reading payment receipt `HdQGSr9RfWVq52Z2XhD3QGLEzFiyRfRzNYNVpcHNNn1r` from the shared Solana Devnet RPC with HTTP 429. A separate read using the configured Devnet provider found the receipt absent, so this attempt did not submit the 10 SCRIP payment. The deployed browser bundle uses `api.devnet.solana.com`. Lot 67 remains Revealed; one peek is also open and must be closed before finalization. No winning bid will be force-cleared.
+
+**Local RPC repair gate PASS:** the Next production build completed after the Windows worker permission rerun; `npm run typecheck` and `git diff --check` passed. A local `/api/solana-rpc` call through the dedicated Devnet provider returned the real Devnet genesis and a fresh blockhash; a disallowed `requestAirdrop` call returned HTTP 400. The app's incorrect genesis constant was corrected to the value in Solana's source. Production now has a sensitive, server-only `SOLANA_RPC` variable, added after explicit user approval. Public deployment and wallet Claim remain pending.
+
+**Peek close PASS:** the buyer confirmed the peek belongs to `3i1Y…Fn74`. Devnet `close_peek_keeper` succeeded (`3NCVKd2jt7egDKTvKnAE83uaYqtKotkSW2HNmVsXcqHbupiG46PPuyHFUbmGwhqVb79a9mNSdbxq5utRhQRVR4LA`); the keeper observed `peeks=1/1`, `closedBids=0/1`. The winner's wallet must still sign Claim before the lot can close.
+
 ## Bid button gate — 2026-11-23
 
 **Local build PASS; live interaction check pending.** The active lot page now combines the authenticated private bid with the bidder's wallet-scoped bid saved on this device. Once either confirms a placed bid, it shows the amount when known and replaces “Place sealed bid” with a disabled, dim “Bid placed” button. The bid handler also checks saved bid state before any Phantom prompt, while the existing TEE account check still protects a fresh device. `npm run build` exited 0 with `/vault/[id]` generated; `git diff --check` exited 0. A live bidder screenshot after deployment remains the user-visible confirmation gate.

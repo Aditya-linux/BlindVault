@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { AnchorProvider, Idl, Program } from "@coral-xyz/anchor";
 import idl from "@/idl/blind_vault.json";
-import { SOLANA_RPC } from "@/lib/connections";
+import { serverSolanaRpc } from "@/lib/serverSolanaRpc";
 import { housePda } from "@/lib/pdas";
 
 export const runtime = "nodejs";
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 /** Server-side House fetch — avoids browser→RPC CORS / flakes. */
 export async function GET() {
   try {
-    const connection = new Connection(SOLANA_RPC, "confirmed");
+    const connection = new Connection(serverSolanaRpc(), "confirmed");
     const wallet = {
       publicKey: PublicKey.default,
       signTransaction: async <T>(tx: T) => tx,

@@ -8,7 +8,7 @@ import { SOLANA_RPC } from "@/lib/connections";
 
 /** Known Solana Devnet genesis hash — wallet txs must hit this network. */
 export const DEVNET_GENESIS =
-  "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWdtNHvccc";
+  "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG";
 
 const MIN_SOL_LAMPORTS = 5_000_000; // ~0.005 SOL
 
@@ -55,8 +55,7 @@ export function useWalletHealth(): WalletHealth {
   return useMemo(() => {
     const rpcIsDevnet = isDevnetRpc(SOLANA_RPC);
     const genesis = genesisQ.data ?? null;
-    const genesisOk =
-      genesis == null ? null : genesis === DEVNET_GENESIS || rpcIsDevnet;
+    const genesisOk = genesis == null ? null : genesis === DEVNET_GENESIS;
     const solLamports = bal.data?.solLamports ?? 0;
     const solOk = solLamports >= MIN_SOL_LAMPORTS;
     const canSignTx = Boolean(signTransaction);
@@ -129,6 +128,7 @@ function isDevnetRpc(url: string): boolean {
   const u = url.toLowerCase();
   return (
     u.includes("devnet") ||
+    u.endsWith("/api/solana-rpc") ||
     u.includes("127.0.0.1") ||
     u.includes("localhost")
   );

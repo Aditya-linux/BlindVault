@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { AnchorProvider, Idl, Program } from "@coral-xyz/anchor";
 import idl from "@/idl/blind_vault.json";
-import { PROGRAM_ID, SOLANA_RPC, TEE_RPC } from "@/lib/connections";
+import { PROGRAM_ID, TEE_RPC } from "@/lib/connections";
+import { serverSolanaRpc } from "@/lib/serverSolanaRpc";
 import { housePda, hintsPda, vaultPda } from "@/lib/pdas";
 import { revealedItemsVisible, vaultStatusName } from "@/lib/types";
 
@@ -54,7 +55,7 @@ export async function GET(
         hintsRaw = null;
       }
     } catch {
-      const solana = new Connection(SOLANA_RPC, "confirmed");
+      const solana = new Connection(serverSolanaRpc(), "confirmed");
       const info = await solana.getAccountInfo(vault);
       if (!info || !info.owner.equals(programId)) {
         return NextResponse.json(
@@ -75,7 +76,7 @@ export async function GET(
     // Finalized Solana state outranks an older TEE clone stuck at Closed.
     if (source === "tee") {
       try {
-        const base = readonlyProgram(new Connection(SOLANA_RPC, "confirmed"));
+        const base = readonlyProgram(new Connection(serverSolanaRpc(), "confirmed"));
         const finalized = await (base.account as any).vault.fetch(vault);
         if (vaultStatusName(finalized.status) === "Settled") {
           vaultRaw = finalized;

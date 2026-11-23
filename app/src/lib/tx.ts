@@ -80,10 +80,34 @@ async function sendOn(
     }
     throw e instanceof Error ? e : new Error(msg);
   }
-  await connection.confirmTransaction(
-    { signature: sig, blockhash, lastValidBlockHeight },
-    "confirmed",
-  );
+  if (layer === "solana") {
+    // The same-origin RPC is HTTP only. Poll rather than subscribing to a
+    // websocket path that a Next route cannot serve.
+    const deadline = Date.now() + 90_000;
+    let confirmed = false;
+    while (Date.now() < deadline) {
+      const status = (await connection.getSignatureStatuses([sig])).value[0];
+      if (status?.err) {
+        throw new Error(`Solana transaction failed: ${JSON.stringify(status.err)}`);
+      }
+      if (status?.confirmationStatus === "confirmed" || status?.confirmationStatus === "finalized") {
+        confirmed = true;
+        break;
+      }
+      if ((await connection.getBlockHeight("confirmed")) > lastValidBlockHeight) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1_500));
+    }
+    if (!confirmed) {
+      throw new Error("Payment confirmation is still unclear. Tap Claim again; it checks the on-chain receipt before another payment.");
+    }
+  } else {
+    await connection.confirmTransaction(
+      { signature: sig, blockhash, lastValidBlockHeight },
+      "confirmed",
+    );
+  }
   const explorerUrl = layer === "tee" ? teeTxUrl(sig) : solanaTxUrl(sig);
   if (evidence) {
     pushEvidence({

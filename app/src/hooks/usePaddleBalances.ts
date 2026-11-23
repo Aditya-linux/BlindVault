@@ -68,5 +68,5 @@ export function usePaddleBalances() {
 
 function isDevnetRpc(url: string): boolean {
   const u = url.toLowerCase();
-  return u.includes("devnet") || u.includes("127.0.0.1") || u.includes("localhost");
+  return u.includes("devnet") || u.endsWith("/api/solana-rpc") || u.includes("127.0.0.1") || u.includes("localhost");
 }

@@ -4,7 +4,8 @@ import { getAuthToken } from "@magicblock-labs/ephemeral-rollups-sdk";
 import { AnchorProvider, Idl, Program } from "@coral-xyz/anchor";
 import nacl from "tweetnacl";
 import idl from "@/idl/blind_vault.json";
-import { PROGRAM_ID, SOLANA_RPC, TEE_RPC } from "@/lib/connections";
+import { PROGRAM_ID, TEE_RPC } from "@/lib/connections";
+import { serverSolanaRpc } from "@/lib/serverSolanaRpc";
 import { housePda, hintsPda, vaultPda } from "@/lib/pdas";
 import { vaultStatusName } from "@/lib/types";
 
@@ -14,7 +15,7 @@ export const dynamic = "force-dynamic";
 /** Read-only proxy for public Vault + Hints (server TEE token from ephemeral key). */
 export async function GET() {
   try {
-    const solana = new Connection(SOLANA_RPC, "confirmed");
+    const solana = new Connection(serverSolanaRpc(), "confirmed");
     const programId = new PublicKey(PROGRAM_ID);
     const house = housePda();
     const readonlyWallet = {
