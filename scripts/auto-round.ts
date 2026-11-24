@@ -64,6 +64,7 @@ async function main() {
   const STUCK_MS = Number(process.env.AUTO_ROUND_STUCK_MS ?? 3 * 60_000);
   let stuckKey: string | null = null;
   let stuckSince = 0;
+  let lastHintCrank = 0;
 
   for (;;) {
     try {
@@ -116,6 +117,13 @@ async function main() {
       // Actual bidding window — keep logging so operators know Join is live.
       if (status === "open" && left > 0) {
         stuckKey = null;
+        const dueHint = (vault.hintTimes as number[]).some(
+          (time) => now >= Number(time),
+        );
+        if (dueHint && Date.now() - lastHintCrank >= 30_000) {
+          lastHintCrank = Date.now();
+          run("scripts/keeper.ts", ["--once"], 60_000);
+        }
         console.log(
           `[${new Date().toISOString()}] lot ${id} OPEN · bidding ends in ${left}s`,
         );

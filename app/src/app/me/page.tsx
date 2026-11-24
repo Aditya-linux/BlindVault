@@ -129,6 +129,7 @@ export default function MePage() {
   }, [localPacks]);
 
   const pastRemembered = remembered.filter((b) => b.vaultId !== vaultId);
+  const wonIds = new Set(history.map((lot) => lot.vaultId));
 
   return (
     <PageEnter className="mx-auto flex max-w-2xl flex-col gap-12">
@@ -139,6 +140,12 @@ export default function MePage() {
         </p>
       </header>
 
+      <nav className="flex flex-wrap gap-4 text-[13px] font-medium text-accent" aria-label="My history sections">
+        <a href="#current-bid">Current bid</a>
+        <a href="#winnings">Won packs</a>
+        <a href="#bid-history">Bid history</a>
+      </nav>
+
       <p className="border-l border-accent/40 pl-4 text-[13px] leading-relaxed text-steel-deep">
         <span className="font-medium text-ink">SCRIP</span> is Blind Vault’s
         free Devnet play token — not real money. Claim it on{" "}
@@ -148,7 +155,7 @@ export default function MePage() {
         , bid with it, win cards. Nothing here has cash value.
       </p>
 
-      <section>
+      <section id="current-bid" className="scroll-mt-24">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="font-display text-2xl tracking-[-0.03em]">
             Current bid
@@ -261,12 +268,19 @@ export default function MePage() {
             </div>
           )}
 
+      </section>
+
+      <section id="bid-history" className="scroll-mt-24">
+        <h2 className="font-display text-2xl tracking-[-0.03em]">Bid history</h2>
+        <p className="mt-1 text-[13px] text-steel-deep">
+          All bids saved on this device, newest first. Won packs below are verified on Solana; bids from another device may be missing here.
+        </p>
+        {pastRemembered.length === 0 && connected && (
+          <p className="mt-5 text-[14px] text-steel-deep">No past bids saved on this device.</p>
+        )}
         {pastRemembered.length > 0 && (
           <ul className="mt-8 space-y-3 border-t border-line/70 pt-6">
-            <li className="text-[11px] font-medium uppercase tracking-[0.12em] text-steel">
-              Recent bids on this device
-            </li>
-            {pastRemembered.slice(0, 5).map((b) => (
+            {pastRemembered.map((b) => (
               <li
                 key={b.vaultId}
                 className="flex flex-wrap items-baseline justify-between gap-2 text-[14px]"
@@ -279,12 +293,15 @@ export default function MePage() {
                       · {b.amountScrip} SCRIP
                     </span>
                   ) : null}
+                  <span className="ml-2 text-[12px] text-steel-deep">
+                    {wonIds.has(b.vaultId) ? "Won & claimed" : "Past bid"}
+                  </span>
                 </span>
                 <MotionNavLink
                   href={`/vault/${b.vaultId}`}
                   className="font-medium text-accent"
                 >
-                  Open
+                  Results
                 </MotionNavLink>
               </li>
             ))}

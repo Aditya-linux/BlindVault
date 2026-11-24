@@ -33,7 +33,7 @@ export function useMyWinnings(owner: string | null | undefined) {
       return body.winnings ?? [];
     },
     staleTime: 2_000,
-    refetchInterval: 5_000,
+    refetchInterval: 60_000,
     retry: 2,
   });
 }

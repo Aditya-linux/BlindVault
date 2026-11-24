@@ -57,7 +57,7 @@ export function rememberMyBid(
   data[owner] = [
     { vaultId, amountScrip, at: Date.now() },
     ...rest,
-  ].slice(0, 40);
+  ].slice(0, 500);
   write(data);
 }
 

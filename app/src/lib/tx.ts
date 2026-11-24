@@ -22,7 +22,7 @@ async function sendOn(
   wallet: WalletLike,
   ixs: TransactionInstruction[],
   layer: "solana" | "tee",
-  evidence?: { vaultId: string; label: string },
+  evidence?: { vaultId: string; label: string; onSubmitted?: (sig: string) => void },
 ): Promise<SendResult> {
   if (!wallet.publicKey) {
     throw new Error("Wallet not connected — connect Phantom/Solflare on Devnet.");
@@ -80,6 +80,7 @@ async function sendOn(
     }
     throw e instanceof Error ? e : new Error(msg);
   }
+  evidence?.onSubmitted?.(sig);
   if (layer === "solana") {
     // The same-origin RPC is HTTP only. Poll rather than subscribing to a
     // websocket path that a Next route cannot serve.
@@ -125,7 +126,7 @@ export function sendSolana(
   connection: Connection,
   wallet: WalletLike,
   ixs: TransactionInstruction[],
-  evidence?: { vaultId: string; label: string },
+  evidence?: { vaultId: string; label: string; onSubmitted?: (sig: string) => void },
 ): Promise<SendResult> {
   return sendOn(connection, wallet, ixs, "solana", evidence);
 }
@@ -134,7 +135,7 @@ export function sendEr(
   connection: Connection,
   wallet: WalletLike,
   ixs: TransactionInstruction[],
-  evidence?: { vaultId: string; label: string },
+  evidence?: { vaultId: string; label: string; onSubmitted?: (sig: string) => void },
 ): Promise<SendResult> {
   return sendOn(connection, wallet, ixs, "tee", evidence);
 }

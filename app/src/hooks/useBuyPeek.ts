@@ -39,6 +39,20 @@ export type DecodedPeek = {
   categoryLabel: string;
 };
 
+async function readWithTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${label} timed out. Check Phantom, then retry.`)), 30_000);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 function splTransferIx(
   source: PublicKey,
   destination: PublicKey,
@@ -114,6 +128,7 @@ export function useBuyPeek(vault: DecodedVault | null | undefined) {
   const [error, setError] = useState<string | null>(null);
   const [lastSig, setLastSig] = useState<string | null>(null);
   const [feeSig, setFeeSig] = useState<string | null>(null);
+  const [phase, setPhase] = useState<string | null>(null);
 
   const buyPeek = useCallback(async () => {
     if (!vault) {
@@ -131,10 +146,24 @@ export function useBuyPeek(vault: DecodedVault | null | undefined) {
     setBusy(true);
     setError(null);
     try {
+      setPhase("Checking your private peek");
+      const token = await readWithTimeout(ensureToken(), "TEE sign-in");
+      if (!token) throw new Error("TEE guest book signature required");
+      const conn = teeConnection(token);
+      const vaultPk = new PublicKey(vault.publicKey);
+      const peek = peekPda(vaultPk, publicKey);
+      const priorPeek = await readWithTimeout(
+        (getReadonlyProgram(conn).account as any).peek.fetchNullable(peek),
+        "Checking previous peek",
+      );
+      if (priorPeek) {
+        await qc.invalidateQueries({ queryKey: ["my-peek"] });
+        throw new Error("Your peek is already available. No new fee was charged.");
+      }
       const house = housePda();
-      const houseAcct = await (
+      const houseAcct = await readWithTimeout<any>((
         getReadonlyProgram(solana).account as any
-      ).house.fetch(house);
+      ).house.fetch(house), "Reading SCRIP fee");
       const scripMint = houseAcct.scripMint as PublicKey;
       const treasury = houseAcct.treasury as PublicKey;
       const buyerScrip = associatedTokenPda(scripMint, publicKey);
@@ -146,20 +175,33 @@ export function useBuyPeek(vault: DecodedVault | null | undefined) {
           signTransaction(tx as never) as never,
       };
 
-      const fee = await sendSolana(
-        solana,
-        wallet as never,
-        [splTransferIx(buyerScrip, treasury, publicKey, peekFee)],
-        {
-          vaultId: String(vault.id),
-          label: "PEEK FEE · SCRIP → treasury (Solana)",
-        },
-      );
-      setFeeSig(fee.sig);
-
-      const token = await ensureToken();
-      if (!token) throw new Error("TEE guest book signature required");
-      const conn = teeConnection(token);
+      const feeKey = `bv_peek_fee_v1:${publicKey.toBase58()}:${vault.id}`;
+      let paidSig = localStorage.getItem(feeKey);
+      if (paidSig) {
+        const status = (await solana.getSignatureStatuses([paidSig])).value[0];
+        if (status?.err) {
+          localStorage.removeItem(feeKey);
+          throw new Error("Previous peek fee failed on Solana. Try Buy peek again.");
+        }
+        if (!status || !["confirmed", "finalized"].includes(status.confirmationStatus || "")) {
+          throw new Error("Peek fee is still processing. Wait and retry; do not pay again.");
+        }
+      } else {
+        setPhase(`Approve the ${Number(peekFee) / 1_000_000} SCRIP fee in Phantom`);
+        const fee = await sendSolana(
+          solana,
+          wallet as never,
+          [splTransferIx(buyerScrip, treasury, publicKey, peekFee)],
+          {
+            vaultId: String(vault.id),
+            label: "PEEK FEE · SCRIP → treasury (Solana)",
+            onSubmitted: (sig) => localStorage.setItem(feeKey, sig),
+          },
+        );
+        paidSig = fee.sig;
+      }
+      setFeeSig(paidSig);
+      setPhase("Saving your private peek on TEE");
       const program = getProgram(conn, {
         publicKey,
         signTransaction: wallet.signTransaction as never,
@@ -168,8 +210,6 @@ export function useBuyPeek(vault: DecodedVault | null | undefined) {
             txs.map((tx) => signTransaction(tx as never)),
           ) as never,
       });
-      const vaultPk = new PublicKey(vault.publicKey);
-      const peek = peekPda(vaultPk, publicKey);
       const contents = contentsPda(vaultPk);
       const poolLedger = poolLedgerPda(house);
 
@@ -188,23 +228,30 @@ export function useBuyPeek(vault: DecodedVault | null | undefined) {
         })
         .instruction();
 
-      const result = await sendEr(conn, wallet as never, [ix], {
-        vaultId: String(vault.id),
-        label: "PEEK · private keyhole (buyer-only ACL)",
-      });
+      const result = await Promise.race([
+        sendEr(conn, wallet as never, [ix], {
+          vaultId: String(vault.id),
+          label: "PEEK · private keyhole (buyer-only ACL)",
+        }),
+        new Promise<never>((_, reject) => setTimeout(
+          () => reject(new Error("TEE peek is taking too long. Refresh and retry; your confirmed fee will not be charged again on this device.")),
+          90_000,
+        )),
+      ]);
       setLastSig(result.sig);
       await qc.invalidateQueries({ queryKey: ["my-peek"] });
       await qc.invalidateQueries({ queryKey: ["vault"] });
-      return { ...result, feeSig: fee.sig };
+      return { ...result, feeSig: paidSig };
     } catch (e) {
       setError(friendlyPeekError(e));
       return null;
     } finally {
       setBusy(false);
+      setPhase(null);
     }
   }, [vault, connected, publicKey, signTransaction, ensureToken, qc]);
 
-  return { buyPeek, busy, error, lastSig, feeSig };
+  return { buyPeek, busy, error, lastSig, feeSig, phase };
 }
 
 function friendlyPeekError(e: unknown): string {

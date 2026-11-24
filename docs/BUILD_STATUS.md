@@ -1,5 +1,15 @@
 # Build Status
 
+## Timed hints, Peek, and personal history gate — 2026-11-24
+
+**Hint failure reproduced; keeper recovery PASS:** lot 73 was Open with one bid and all four hint deadlines passed, but `/api/public-vault` showed only the first clue released. The old watchdog PID 22836 was absent. A manual `keeper.ts --once` released overdue clues; the public API then returned all four released. The watchdog was restarted as hidden PID 6724. `auto-round.ts` now cranks the keeper every 30 seconds while hints are due during Open, rather than waiting until the auction deadline. The keeper continues to protect the human bid; it cannot sign Claim for the bidder.
+
+**Peek/UI repair pending live gate:** the buyer reported “Buying…” for over 120 seconds. The client now reports its current phase, checks for an existing private peek before charging, records the submitted base fee transaction by wallet and lot, and reuses a confirmed fee on retry. TEE peek submission has a 90-second timeout with a retry message. The exact stage of the earlier stalled attempt was not observed, so a live wallet check remains required.
+
+**Lot 73 follow-up:** the keeper selected the previously confirmed bidder with `end_auction` signature `CHJvidnkdtrBSVvKFeMWpnVxdfvEVVcmbxPrHfhp1Lw6etW24YMxyMu8FGVEUTULKk3qc8QWoGibnYouGzYyYjM`; public state advanced to Revealed. `peeksSold=0`, and a read-only scan of that wallet's recent base signatures found no lot-73-window transaction, so there is no evidence that the stalled Peek charged its 5 SCRIP fee. Claim still needs the winner's wallet signature.
+
+**History change pending live gate:** My bids now separates Current bid, Bid history, and verified Won packs; it shows every bid saved on this device, labels claimed wins, and scans all existing vaults for on-chain winning packs. Bid records from other devices cannot be reconstructed after private bid accounts close, so the page states that limit.
+
 ## Bid retry gate — 2026-11-24
 
 **Reported FAIL / live bid retry pending:** a bidder saw a generic simulation error while trying to place 23 SCRIP during an Open lot. The public lot had zero bids; a read-only unsigned 23 SCRIP `delegateSpl` simulation on the current Devnet state succeeded. The exact failed simulation stage was hidden by the UI, so the root cause is not yet proven. The client now checks the private SCRIP balance first, deposits only the missing amount, waits up to one minute for the TEE token clone before `place_bid`, and records a confirmed deposit by wallet/lot on this device so a retry does not deposit it again. Simulation errors now show their actual message. `npm run typecheck` and `npm run build` passed; a live wallet bid is the remaining gate.

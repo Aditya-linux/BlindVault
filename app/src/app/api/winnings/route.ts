@@ -22,7 +22,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "bad_owner" }, { status: 400 });
     }
 
-    const { lots } = await loadVaultHistory({ limit: 40 });
+    const { lots } = await loadVaultHistory({ limit: Number.MAX_SAFE_INTEGER });
     const winnings: WinningLot[] = lots
       .filter(
         (lot) =>

@@ -520,6 +520,11 @@ export default function LiveVaultPage() {
                   {peek.busy ? "Buying…" : "Buy peek"}
                 </Button>
               )}
+              {peek.busy && peek.phase && (
+                <p className="mt-2 text-[12px] text-steel-deep" role="status">
+                  {peek.phase}
+                </p>
+              )}
               {peek.error && (
                 <p
                   role="alert"
