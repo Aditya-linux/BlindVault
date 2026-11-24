@@ -2,7 +2,9 @@
 
 ## Peek account decoder gate — 2026-11-24
 
-**Root cause found / live wallet retry pending:** Anchor's generated IDL omits the ephemeral `Peek` account, but `useBuyPeek` and `useMyPeek` called `program.account.peek.fetchNullable`, producing `Cannot read properties of undefined (reading 'fetchNullable')` before any fee transfer. Both reads now use authenticated TEE `getAccountInfo` and a checked decoder for the `Peek` discriminator, owner program, vault, buyer, slot, rarity, and category. `npm run typecheck` passed. Production build and live wallet retry are the remaining gates.
+**Root cause found / live wallet retry pending:** Anchor's generated IDL omits the ephemeral `Peek` account, but `useBuyPeek` and `useMyPeek` called `program.account.peek.fetchNullable`, producing `Cannot read properties of undefined (reading 'fetchNullable')` before any fee transfer. Both reads now use authenticated TEE `getAccountInfo` and a checked decoder for the `Peek` discriminator, owner program, vault, buyer, slot, rarity, and category. `npm run typecheck` passed. The wallet-signed Peek purchase remains the final gate.
+
+**Production PASS:** `npm run build` exited 0, commit `affdd7c` reached Vercel Production deployment `dpl_GE4MLny48NmmaoGETg6CBkbqdE7W`, and the deployment is Ready with alias `blind-vault-amber.vercel.app`. A real buyer wallet must still confirm that Buy peek completes and displays the private result.
 
 ## Timed hints, Peek, and personal history gate — 2026-11-24
 
