@@ -10,6 +10,8 @@
 
 **History change pending live gate:** My bids now separates Current bid, Bid history, and verified Won packs; it shows every bid saved on this device, labels claimed wins, and scans all existing vaults for on-chain winning packs. Bid records from other devices cannot be reconstructed after private bid accounts close, so the page states that limit.
 
+**Production gate PASS:** commit `2458308` reached Vercel Production deployment `dpl_3RfN5wnEuNwgS47PS1XLW3SBdA3v`, aliased to `blind-vault-amber.vercel.app`. The deployed `/api/winnings` returned this wallet's settled lots 65, 66, and 67. Public lot 73 remained Revealed with all four hints visible; the restarted watchdog PID 6724 was alive and correctly waited for the winner's Claim. Peek wallet interaction and the new My bids layout still need user-visible confirmation.
+
 ## Bid retry gate — 2026-11-24
 
 **Reported FAIL / live bid retry pending:** a bidder saw a generic simulation error while trying to place 23 SCRIP during an Open lot. The public lot had zero bids; a read-only unsigned 23 SCRIP `delegateSpl` simulation on the current Devnet state succeeded. The exact failed simulation stage was hidden by the UI, so the root cause is not yet proven. The client now checks the private SCRIP balance first, deposits only the missing amount, waits up to one minute for the TEE token clone before `place_bid`, and records a confirmed deposit by wallet/lot on this device so a retry does not deposit it again. Simulation errors now show their actual message. `npm run typecheck` and `npm run build` passed; a live wallet bid is the remaining gate.

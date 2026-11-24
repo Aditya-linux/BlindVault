@@ -44,7 +44,7 @@ export function VaultHints({
             Whispers
           </h2>
           <p className="mt-1 text-[13px] leading-relaxed text-[#d4e6f8]">
-            Clues unlock as the clock runs — never the exact cards.
+            Clues unlock as the clock runs — never the exact cards. The keeper can publish them without your Phantom signature.
           </p>
         </div>
         <span className="font-mono text-[11px] tabular-nums text-[#b8d4f0]">
