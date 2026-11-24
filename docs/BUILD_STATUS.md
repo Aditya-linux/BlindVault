@@ -2,7 +2,7 @@
 
 ## Bid retry gate — 2026-11-24
 
-**Reported FAIL / repair pending deployment:** a bidder saw a generic simulation error while trying to place 23 SCRIP during an Open lot. The public lot had zero bids; a read-only unsigned 23 SCRIP `delegateSpl` simulation on the current Devnet state succeeded. The exact failed simulation stage was hidden by the UI, so the root cause is not yet proven. The client now checks the private SCRIP balance first, deposits only the missing amount, waits up to one minute for the TEE token clone before `place_bid`, and records a confirmed deposit by wallet/lot on this device so a retry does not deposit it again. Simulation errors now show their actual message. `npm run typecheck` and `npm run build` passed; a live wallet bid is the remaining gate.
+**Reported FAIL / live bid retry pending:** a bidder saw a generic simulation error while trying to place 23 SCRIP during an Open lot. The public lot had zero bids; a read-only unsigned 23 SCRIP `delegateSpl` simulation on the current Devnet state succeeded. The exact failed simulation stage was hidden by the UI, so the root cause is not yet proven. The client now checks the private SCRIP balance first, deposits only the missing amount, waits up to one minute for the TEE token clone before `place_bid`, and records a confirmed deposit by wallet/lot on this device so a retry does not deposit it again. Simulation errors now show their actual message. `npm run typecheck` and `npm run build` passed; a live wallet bid is the remaining gate.
 
 ## Lot 67 ownership and rollover gate — 2026-11-23
 
