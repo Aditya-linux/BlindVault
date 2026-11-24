@@ -14,7 +14,7 @@ import {
 } from "@magicblock-labs/ephemeral-rollups-sdk";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { teeConnection, solana } from "@/lib/connections";
-import { getProgram, getReadonlyProgram } from "@/lib/program";
+import { getProgram, getReadonlyProgram, programId } from "@/lib/program";
 import {
   associatedTokenPda,
   contentsPda,
@@ -73,25 +73,30 @@ function splTransferIx(
   });
 }
 
-function decodePeek(
-  raw: {
-    vault: PublicKey;
-    buyer: PublicKey;
-    slot: number;
-    rarity: number;
-    category: number;
-  },
-  pk: PublicKey,
-): DecodedPeek {
+// Peek is an ephemeral account omitted by Anchor's generated IDL.
+const PEEK_DISCRIMINATOR = [0x81, 0x39, 0xa5, 0x82, 0x29, 0xf3, 0xfe, 0x68];
+
+function decodePeek(raw: Uint8Array, pk: PublicKey): DecodedPeek {
+  if (
+    raw.length < 76 ||
+    !PEEK_DISCRIMINATOR.every((byte, i) => raw[i] === byte)
+  ) {
+    throw new Error("Private peek account has invalid data");
+  }
+  const vault = new PublicKey(raw.slice(8, 40));
+  const buyer = new PublicKey(raw.slice(40, 72));
+  const slot = raw[72];
+  const rarity = raw[73];
+  const category = raw[74];
   return {
     publicKey: pk.toBase58(),
-    vault: raw.vault.toBase58(),
-    buyer: raw.buyer.toBase58(),
-    slot: Number(raw.slot),
-    rarity: Number(raw.rarity),
-    category: Number(raw.category),
-    rarityLabel: rarityLabel(Number(raw.rarity)),
-    categoryLabel: categoryLabel(Number(raw.category)),
+    vault: vault.toBase58(),
+    buyer: buyer.toBase58(),
+    slot,
+    rarity,
+    category,
+    rarityLabel: rarityLabel(rarity),
+    categoryLabel: categoryLabel(category),
   };
 }
 
@@ -105,11 +110,15 @@ export function useMyPeek(vaultPk: string | null) {
     queryFn: async (): Promise<DecodedPeek | null> => {
       if (!vaultPk || !publicKey || !tee.token) return null;
       const conn = teeConnection(tee.token);
-      const program = getReadonlyProgram(conn);
       const peek = peekPda(new PublicKey(vaultPk), publicKey);
-      const acct = await (program.account as any).peek.fetchNullable(peek);
-      if (!acct) return null;
-      return decodePeek(acct, peek);
+      const info = await conn.getAccountInfo(peek);
+      if (!info) return null;
+      if (!info.owner.equals(programId())) throw new Error("Private peek owner mismatch");
+      const decoded = decodePeek(info.data, peek);
+      if (decoded.vault !== vaultPk || decoded.buyer !== publicKey.toBase58()) {
+        throw new Error("Private peek wallet mismatch");
+      }
+      return decoded;
     },
     refetchInterval: 4_000,
   });
@@ -152,11 +161,10 @@ export function useBuyPeek(vault: DecodedVault | null | undefined) {
       const conn = teeConnection(token);
       const vaultPk = new PublicKey(vault.publicKey);
       const peek = peekPda(vaultPk, publicKey);
-      const priorPeek = await readWithTimeout(
-        (getReadonlyProgram(conn).account as any).peek.fetchNullable(peek),
-        "Checking previous peek",
-      );
+      const priorPeek = await readWithTimeout(conn.getAccountInfo(peek), "Checking previous peek");
       if (priorPeek) {
+        if (!priorPeek.owner.equals(programId())) throw new Error("Private peek owner mismatch");
+        decodePeek(priorPeek.data, peek);
         await qc.invalidateQueries({ queryKey: ["my-peek"] });
         throw new Error("Your peek is already available. No new fee was charged.");
       }

@@ -1,5 +1,9 @@
 # Build Status
 
+## Peek account decoder gate — 2026-11-24
+
+**Root cause found / live wallet retry pending:** Anchor's generated IDL omits the ephemeral `Peek` account, but `useBuyPeek` and `useMyPeek` called `program.account.peek.fetchNullable`, producing `Cannot read properties of undefined (reading 'fetchNullable')` before any fee transfer. Both reads now use authenticated TEE `getAccountInfo` and a checked decoder for the `Peek` discriminator, owner program, vault, buyer, slot, rarity, and category. `npm run typecheck` passed. Production build and live wallet retry are the remaining gates.
+
 ## Timed hints, Peek, and personal history gate — 2026-11-24
 
 **Hint failure reproduced; keeper recovery PASS:** lot 73 was Open with one bid and all four hint deadlines passed, but `/api/public-vault` showed only the first clue released. The old watchdog PID 22836 was absent. A manual `keeper.ts --once` released overdue clues; the public API then returned all four released. The watchdog was restarted as hidden PID 6724. `auto-round.ts` now cranks the keeper every 30 seconds while hints are due during Open, rather than waiting until the auction deadline. The keeper continues to protect the human bid; it cannot sign Claim for the bidder.
