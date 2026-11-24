@@ -1,5 +1,9 @@
 # Build Status
 
+## Bid retry gate — 2026-11-24
+
+**Reported FAIL / repair pending deployment:** a bidder saw a generic simulation error while trying to place 23 SCRIP during an Open lot. The public lot had zero bids; a read-only unsigned 23 SCRIP `delegateSpl` simulation on the current Devnet state succeeded. The exact failed simulation stage was hidden by the UI, so the root cause is not yet proven. The client now checks the private SCRIP balance first, deposits only the missing amount, waits up to one minute for the TEE token clone before `place_bid`, and records a confirmed deposit by wallet/lot on this device so a retry does not deposit it again. Simulation errors now show their actual message. `npm run typecheck` and `npm run build` passed; a live wallet bid is the remaining gate.
+
 ## Lot 67 ownership and rollover gate — 2026-11-23
 
 **PASS:** after the winner `3i1YQqPua8Nuzjpm3aQ5Aa34yfooDuXni3Y4Mm5rFn74` signed Claim, `npx tsx scripts/verify-settled-vault.ts 67` exited 0. It verified the base vault is Settled, payment receipt `HdQGSr9RfWVq52Z2XhD3QGLEzFiyRfRzNYNVpcHNNn1r` records 10 SCRIP, Items 11/33/20 have `owner=winner`, and each corresponding winner SPL ATA balance equals one. The shared pool is currently delegated to the next round, as expected. The manually triggered keeper closed the peek; the watchdog completed the round and opened lot 68 (`HPTHcNvA6eUn2CZQdVdwd38Lt2YRLwxqMxvMFtKYg1As`). Public `/api/public-vault` returned `active=true`, `id=68`, `status=Open`, `bidCount=0`. The keeper log contains transient commit/permission errors during rollover, but the final ownership verifier and next-lot public gate passed.

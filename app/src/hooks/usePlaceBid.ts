@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { PublicKey, SystemProgram } from "@solana/web3.js";
+import { Connection, PublicKey, SystemProgram } from "@solana/web3.js";
 import {
   EPHEMERAL_VAULT_ID,
   MAGIC_PROGRAM_ID,
@@ -23,6 +23,14 @@ import { useTeeAuth } from "./useTeeAuth";
 const TEE_VALIDATOR = new PublicKey(
   "MTEWGuqxUpYZGFJQcp8tLN7x5v9BSeoFHYWQQ3n3xzo",
 );
+
+async function privateScripBalance(
+  conn: Connection,
+  ata: PublicKey,
+): Promise<bigint> {
+  if (!(await conn.getAccountInfo(ata))) return BigInt(0);
+  return BigInt((await conn.getTokenAccountBalance(ata)).value.amount);
+}
 
 export function usePlaceBid(vault: DecodedVault | null | undefined) {
   const { connection } = useConnection();
@@ -93,36 +101,55 @@ export function usePlaceBid(vault: DecodedVault | null | undefined) {
         const scripMint = houseAcct.scripMint as PublicKey;
         const bidderScrip = associatedTokenPda(scripMint, publicKey);
 
-        const balInfo = await connection
-          .getTokenAccountBalance(bidderScrip)
-          .catch(() => null);
-        const bal = balInfo ? BigInt(balInfo.value.amount) : BigInt(0);
-        if (bal < amountRaw) {
-          throw new Error(
-            `Need ${amountScrip} SCRIP — claim faucet on Paddle first (balance ${Number(bal) / 1_000_000})`,
-          );
-        }
+        const depositKey = `bv_bid_deposit_v1:${publicKey.toBase58()}:${vault.id}`;
+        const recordedDeposit = BigInt(localStorage.getItem(depositKey) || "0");
+        let privateBalance = await privateScripBalance(conn, bidderScrip);
+        const depositNeeded =
+          amountRaw > privateBalance ? amountRaw - privateBalance : BigInt(0);
+        if (depositNeeded > BigInt(0) && recordedDeposit < amountRaw) {
+          const balInfo = await connection
+            .getTokenAccountBalance(bidderScrip)
+            .catch(() => null);
+          const bal = balInfo ? BigInt(balInfo.value.amount) : BigInt(0);
+          if (bal < depositNeeded) {
+            throw new Error(
+              `Need ${Number(depositNeeded) / 1_000_000} SCRIP — claim faucet on Paddle first (balance ${Number(bal) / 1_000_000})`,
+            );
+          }
 
-        // Deposit/lock SCRIP into TEE so place_bid can approve on the ER
-        const depositIxs = await delegateSpl(
-          publicKey,
-          scripMint,
-          amountRaw,
-          {
+          // Deposit/lock SCRIP into TEE so place_bid can approve on the ER.
+          const depositIxs = await delegateSpl(publicKey, scripMint, depositNeeded, {
             payer: publicKey,
             validator: TEE_VALIDATOR,
             tokenProgram: TOKEN_PROGRAM_ID,
             initIfMissing: true,
             initVaultIfMissing: true,
             initAtasIfMissing: true,
-          },
-        );
-        await sendSolana(
-          connection,
-          { publicKey, signTransaction },
-          depositIxs,
-          { vaultId: String(vault.id), label: "delegateSpl SCRIP for bid" },
-        );
+          });
+          await sendSolana(
+            connection,
+            { publicKey, signTransaction },
+            depositIxs,
+            { vaultId: String(vault.id), label: "delegateSpl SCRIP for bid" },
+          );
+          localStorage.setItem(depositKey, amountRaw.toString());
+        }
+
+        // Base confirmation can precede the private token clone. Wait until
+        // place_bid can approve the deposited SCRIP without another deposit.
+        for (
+          let attempt = 0;
+          privateBalance < amountRaw && attempt < 30;
+          attempt++
+        ) {
+          await new Promise((resolve) => setTimeout(resolve, 2_000));
+          privateBalance = await privateScripBalance(conn, bidderScrip);
+        }
+        if (privateBalance < amountRaw) {
+          throw new Error(
+            "SCRIP deposit confirmed but still syncing to the private network. Retry this bid shortly; this device will not deposit again.",
+          );
+        }
 
         const amount = new BN(amountRaw.toString());
 
@@ -163,6 +190,7 @@ export function usePlaceBid(vault: DecodedVault | null | undefined) {
         );
         setLastSig(result.sig);
         rememberMyBid(publicKey.toBase58(), vault.id, amountScrip);
+        localStorage.removeItem(depositKey);
         await qc.invalidateQueries({ queryKey: ["vault", vault.publicKey] });
         await qc.invalidateQueries({ queryKey: ["my-bid"] });
         return result;
@@ -202,7 +230,7 @@ function friendlyBidError(e: unknown): string {
     lower.includes("simulation failed") ||
     lower.includes("custom program error")
   ) {
-    return "Couldn’t place that bid (likely already locked, or lot closed). Refresh — if you see “Bid locked in”, you’re done.";
+    return `Bid transaction rejected: ${msg.replace(/\s+/g, " ").slice(0, 280)}`;
   }
   return msg;
 }
